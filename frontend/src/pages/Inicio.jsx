@@ -70,8 +70,8 @@ export function Inicio() {
   return (
     <section className="home-page">
       <div className="home-intro">
-        <p className="eyebrow">Sistema administrativo</p>
-        <h1>Biblioteca Escolar</h1>
+        <p className="eyebrow">Sistema de Gestão Bibliotecário</p>
+        <h1>Biblioteca Lucimar Gomes</h1>
         <p>Controle diário do acervo e do atendimento da biblioteca.</p>
       </div>
       <div className="home-rule" />

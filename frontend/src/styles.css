@@ -2,24 +2,24 @@
 
 :root {
   font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
-  color: #25302d;
-  background: #f5f7f6;
+  color: #263746;
+  background: #f4f8fc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: #f5f7f6; }
+body { margin: 0; min-width: 320px; background: #f4f8fc; }
 button, a { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #6d9b7d; outline-offset: 2px; }
 
 .app-shell { min-height: 100vh; }
 .auth-loading { display: grid; place-items: center; min-height: 100vh; color: #65736d; font-size: 13px; }
-.login-page { display: grid; place-items: center; min-height: 100vh; padding: 28px 20px; background: #f5f7f6; }
-.login-panel { width: min(420px, 100%); border: 1px solid #d9e1dd; background: #fff; box-shadow: 0 8px 24px rgba(30, 53, 43, .07); }
+.login-page { display: grid; place-items: center; min-height: 100vh; padding: 28px 20px; background: #f4f8fc; }
+.login-panel { width: min(420px, 100%); border: 1px solid #d4e0eb; background: #fff; box-shadow: 0 8px 24px rgba(30, 73, 110, .08); }
 .login-heading { padding: 34px 36px 25px; border-bottom: 1px solid #e1e8e4; }
-.login-mark { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 22px; background: #1f4d3b; color: #fff; }
+.login-logo { display: block; width: min(170px, 70%); height: 82px; margin: 0 auto 22px; object-fit: contain; }
 .login-heading h1 { margin-bottom: 8px; font-size: 28px; }
 .login-heading > p:last-child { margin-bottom: 0; color: #78847f; font-size: 13px; }
 .login-form { display: grid; gap: 8px; padding: 26px 36px 29px; }
@@ -36,9 +36,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .known-users-management > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .known-users-management button { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 7px; border: 1px solid #d9e1dd; background: #f7f9f8; color: #65736d; font-size: 11px; }
 .known-users-management button:hover { border-color: #b5c9bb; color: #315b42; }
-.topbar { height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 30px; background: #fff; border-bottom: 1px solid #dfe5e2; position: sticky; top: 0; z-index: 10; }
-.brand { display: flex; align-items: center; gap: 10px; color: #173a2e; cursor: pointer; white-space: nowrap; }
-.brand-mark { display: grid; place-items: center; width: 30px; height: 30px; background: #1f4d3b; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.topbar { height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 30px; background: #fff; border-bottom: 1px solid #d6e2ed; position: sticky; top: 0; z-index: 10; }
+.brand { display: flex; align-items: center; gap: 10px; color: #153d63; cursor: pointer; white-space: nowrap; }
+.brand-mark { display: grid; place-items: center; width: 30px; height: 30px; background: #fff; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.brand-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .brand-name { font-size: 15px; font-weight: 600; }
 .main-nav { display: flex; align-self: stretch; gap: 2px; }
 .nav-item { display: inline-flex; align-items: center; gap: 8px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #66736e; padding: 0 14px; font-size: 13px; transition: color .15s ease, background .15s ease; }
@@ -111,8 +112,8 @@ h2 { margin-bottom: 0; color: #28473b; font-size: 16px; font-weight: 600; }
 .module-toolbar h1 { margin-bottom: 8px; }
 .module-toolbar .page-description { margin-bottom: 0; }
 .primary-button, .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid #1f4d3b; font-size: 13px; font-weight: 500; white-space: nowrap; }
-.primary-button { background: #1f4d3b; color: #fff; }
-.primary-button:hover { background: #173a2e; }
+.primary-button { background: #1769aa; color: #fff; border-color: #1769aa; }
+.primary-button:hover { background: #125487; }
 .primary-button:disabled { cursor: wait; opacity: .65; }
 .secondary-button { border-color: #cbd6d0; background: #fff; color: #53635b; }
 .secondary-button:hover { background: #f3f6f4; }
@@ -355,4 +356,31 @@ tbody tr:hover { background: #fafcfb; }
   .login-page { align-items: start; padding-top: 48px; }
   .login-heading, .login-form { padding-left: 24px; padding-right: 24px; }
   .known-users-management { padding-left: 24px; padding-right: 24px; }
+}
+
+/* Visual identity: Biblioteca Lucimar Gomes */
+:root { --library-blue: #1769aa; --library-blue-dark: #125487; --library-blue-soft: #eaf3fb; --library-border: #d4e0eb; --library-text: #263746; }
+.eyebrow { color: #50718d; }
+h1, h2, .shortcut-copy strong, .student-name { color: #153d63; }
+.page-description, .home-intro > p:last-child { color: #5f7180; }
+.login-heading, .modal-header, .module-toolbar { border-color: var(--library-border); }
+.login-form > label, .form-grid label, .loan-step > label, .confirmation-copy, .location-filter-row label { color: #405a70; }
+.login-form input, .known-user-select, .form-grid input, .form-grid textarea, .form-grid select, .search-form, .filter-select { border-color: #c8d7e5; }
+.login-form input:focus, .known-user-select:focus-within, .form-grid input:focus, .form-grid textarea:focus, .form-grid select:focus, .search-form:focus-within { border-color: #5b9bc9; box-shadow: 0 0 0 2px rgba(23, 105, 170, .12); }
+.secondary-button { border-color: #b9cddd; color: #245d88; }
+.secondary-button:hover, .icon-button:hover, .table-action:hover, .modal-close:hover { border-color: #6fa4ca; color: var(--library-blue-dark); background: var(--library-blue-soft); }
+.nav-item:hover, .nav-item.active { color: var(--library-blue); }
+.nav-item.active { border-bottom-color: var(--library-blue); }
+.shortcut:hover { background: var(--library-blue-soft); }
+.shortcut-icon { color: var(--library-blue); background: #e2f0fa; }
+.shortcut-arrow { color: #6a9bc0; }
+.status-dot { background: #3d91c6; }
+.status-label.active, .stock-badge, .loan-badge { color: #2875a8; }
+.status-label.active::before { background: currentColor; }
+.feedback.success { border-color: #4e9ac7; background: #eef7fd; color: #21638d; }
+.isbn-scanner { border-color: #b8d4e8; background: #eef7fd; }
+.brand-mark { border: 1px solid #d4e0eb; }
+@media (max-width: 680px) {
+  .login-logo { width: min(150px, 62%); height: 72px; }
+  .brand-name { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
 }

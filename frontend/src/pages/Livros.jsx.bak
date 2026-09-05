@@ -139,17 +139,13 @@ export function Livros() {
   const [cameraOpen, setCameraOpen] = useState(false)
   const [prateleiras, setPrateleiras] = useState([])
   const [secoes, setSecoes] = useState([])
-  const [quickMode, setQuickMode] = useState(false)
-  const [quickCount, setQuickCount] = useState(0)
-  const [lastQuickBook, setLastQuickBook] = useState(null)
-  const numeroRegistroRef = useRef(null)
 
   const categoryName = (id) => categorias.find((item) => item.id === id)?.nome || '—'
   const publisherName = (id) => editoras.find((item) => item.id === id)?.nome || '—'
   const authorNames = (book) => book.autores?.map((author) => author.nome).join(', ') || '—'
 
   async function loadReferences() {
-    const [authors, categories, publishers, shelves, sections] = await Promise.all([
+    const [authors, categories, publishers] = await Promise.all([
       apiRequest('/api/livros/autores?page=1&page_size=100'),
       apiRequest('/api/livros/categorias?page=1&page_size=100'),
       apiRequest('/api/livros/editoras?page=1&page_size=100'),
@@ -159,8 +155,8 @@ export function Livros() {
     setAutores(authors)
     setCategorias(categories)
     setEditoras(publishers)
-    setPrateleiras(shelves)
-    setSecoes(sections)
+    setPrateleiras(prateleiras)
+    setSecoes(secoes)
   }
 
   async function loadLivros(filterOverrides = {}) {
@@ -196,7 +192,6 @@ export function Livros() {
   }
 
   function startCreate() {
-    setQuickMode(false)
     setEditing(null)
     setDetails(null)
     setForm(emptyForm)
@@ -205,22 +200,6 @@ export function Livros() {
     setIsbnCover('')
     setFormOpen(true)
     setFeedback('')
-  }
-
-  function startQuickCreate() {
-    setQuickMode(true)
-    setQuickCount(0)
-    setLastQuickBook(null)
-    setEditing(null)
-    setDetails(null)
-    setForm({ ...emptyForm, numero_exemplares: '1' })
-    setIsbnSearch('')
-    setIsbnFeedback('')
-    setIsbnCover('')
-    setFeedback('')
-    setError('')
-    setFormOpen(true)
-    setTimeout(() => setCameraOpen(true), 150)
   }
 
   async function searchISBN(event, scannedValue = null) {
@@ -254,7 +233,6 @@ export function Livros() {
       }))
       setIsbnCover(result.capa_url || '')
       setIsbnFeedback(found ? 'Livro encontrado pelo ISBN.' : 'Não encontramos informações para este ISBN. Você pode continuar o cadastro manualmente.')
-      if (quickMode) setTimeout(() => numeroRegistroRef.current?.focus(), 100)
     } catch (requestError) {
       setIsbnCover('')
       setIsbnFeedback(requestError.message || 'Não foi possível consultar este ISBN. Você pode continuar o cadastro manualmente.')
@@ -270,7 +248,6 @@ export function Livros() {
   }
 
   function startEdit(book) {
-    setQuickMode(false)
     setEditing(book)
     setDetails(null)
     setForm({ numero_registro: book.numero_registro || '', numero_exemplares: '1', tipo_obra: book.tipo_obra || '', pi: book.pi || '', cdd: book.cdd || '', cutter: book.cutter || '', autores: book.autores?.map((author) => author.nome).join(', ') || '', titulo: book.titulo || '', subtitulo: book.subtitulo || '', assunto: book.assunto || '', local: book.local || '', edicao: book.edicao || '', editora: publisherName(book.editora_id) === '—' ? '' : publisherName(book.editora_id), ano_publicacao: book.ano_publicacao || '', numero_paginas: book.numero_paginas || '', volumes: book.volumes || '', serie: book.serie || '', isbn: book.isbn || '', idioma: book.idioma || 'Português', observacoes: book.observacoes || book.descricao || '', prateleira_id: '', secao_id: '' })
@@ -303,23 +280,9 @@ export function Livros() {
       }
       if (editing) await apiRequest(`/api/livros/${editing.id}`, { method: 'PUT', body: JSON.stringify(payload) })
       else await apiRequest('/api/livros', { method: 'POST', body: JSON.stringify(payload) })
-
-      if (quickMode && !editing) {
-        const savedLocation = { prateleira_id: form.prateleira_id, secao_id: form.secao_id }
-        setQuickCount((current) => current + 1)
-        setLastQuickBook({ titulo: form.titulo, numero_registro: form.numero_registro })
-        setForm({ ...emptyForm, ...savedLocation, numero_exemplares: '1' })
-        setIsbnSearch('')
-        setIsbnFeedback('')
-        setIsbnCover('')
-        setFeedback('Livro cadastrado. Pronto para o próximo.')
-        await loadLivros()
-        setTimeout(() => setCameraOpen(true), 150)
-      } else {
-        setFormOpen(false)
-        setFeedback(editing ? 'Livro atualizado com sucesso.' : 'Livro cadastrado com sucesso.')
-        await loadLivros()
-      }
+      setFormOpen(false)
+      setFeedback(editing ? 'Livro atualizado com sucesso.' : 'Livro cadastrado com sucesso.')
+      await loadLivros()
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível salvar o livro.')
     } finally {
@@ -347,8 +310,8 @@ export function Livros() {
   return (
     <section className="module-page students-page books-page">
       <ISBNScanner value={isbnSearch} onChange={(event) => setIsbnSearch(event.target.value)} onSearch={searchISBN} loading={isbnLoading} feedback={isbnFeedback} cover={isbnCover} form={form} updateField={updateField} cameraOpen={cameraOpen} onOpenCamera={() => setCameraOpen(true)} onCloseCamera={() => setCameraOpen(false)} onDetected={handleCameraDetected} />
-      {formOpen && !quickMode && <LocationFields form={form} updateField={updateField} prateleiras={prateleiras} secoes={secoes} />}
-      <div className="module-toolbar"><div><p className="eyebrow">Catálogo</p><h1>Livros</h1><p className="page-description">Consulta e manutenção das obras cadastradas na biblioteca.</p></div><div className="modal-actions"><button className="secondary-button" onClick={startQuickCreate}>Cadastro rápido</button><button className="primary-button" onClick={startCreate}><Plus size={16} /> Novo livro</button></div></div>
+      {formOpen && <LocationFields form={form} updateField={updateField} prateleiras={prateleiras} secoes={secoes} />}
+      <div className="module-toolbar"><div><p className="eyebrow">Catálogo</p><h1>Livros</h1><p className="page-description">Consulta e manutenção das obras cadastradas na biblioteca.</p></div><button className="primary-button" onClick={startCreate}><Plus size={16} /> Novo livro</button></div>
       <div className="books-filters">
         <form className="search-form" onSubmit={searchBooks}><Search size={17} /><select value={searchField} onChange={(event) => setSearchField(event.target.value)} aria-label="Campo da pesquisa"><option value="titulo">Título</option><option value="autor">Autor</option><option value="isbn">ISBN</option></select><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para pesquisar" aria-label="Pesquisar livros" /><button type="submit">Pesquisar</button></form>
         <select className="filter-select" value={categoryFilter} onChange={(event) => { const value = event.target.value; setCategoryFilter(value); loadLivros({ category: value }) }} aria-label="Filtrar por categoria"><option value="">Todas as categorias</option>{categorias.map((category) => <option value={category.id} key={category.id}>{category.nome}</option>)}</select>
@@ -361,7 +324,7 @@ export function Livros() {
       <div className="table-frame">
         {loading ? <div className="table-state">Carregando livros...</div> : visibleBooks.length === 0 ? <div className="table-state empty-state"><BookOpen size={24} /><strong>{query || categoryFilter || publisherFilter || statusFilter !== 'todos' ? 'Nenhum livro encontrado.' : 'Nenhum livro cadastrado no acervo.'}</strong><span>{query || categoryFilter || publisherFilter || statusFilter !== 'todos' ? 'Ajuste os filtros e tente novamente.' : 'Cadastre o primeiro livro para começar.'}</span>{!query && !categoryFilter && !publisherFilter && statusFilter === 'todos' && <button className="primary-button" onClick={startCreate}><Plus size={16} /> Cadastrar primeiro livro</button>}</div> : <table><thead><tr><th>Título</th><th>Autor(es)</th><th>Categoria</th><th>Editora</th><th>Ano</th><th>Status</th><th className="actions-column">Ações</th></tr></thead><tbody>{visibleBooks.map((book) => <tr key={book.id}><td className="student-name">{book.titulo}{book.subtitulo && <small className="cell-subtitle">{book.subtitulo}</small>}</td><td>{authorNames(book)}</td><td>{categoryName(book.categoria_id)}</td><td>{publisherName(book.editora_id)}</td><td>{book.ano_publicacao || '—'}</td><td><span className={`status-label ${book.ativo ? 'active' : 'inactive'}`}>{book.ativo ? 'Ativo' : 'Inativo'}</span></td><td className="row-actions"><button className="table-action" onClick={() => setDetails(book)} title="Visualizar" aria-label={`Visualizar ${book.titulo}`}><Eye size={16} /></button><button className="table-action" onClick={() => startEdit(book)} title="Editar" aria-label={`Editar ${book.titulo}`}><Pencil size={16} /></button><button className="table-action" onClick={() => toggleStatus(book)} title={book.ativo ? 'Desativar' : 'Ativar'} aria-label={`${book.ativo ? 'Desativar' : 'Ativar'} ${book.titulo}`}><Power size={16} /></button></td></tr>)}</tbody></table>}
       </div>
-      {formOpen && <div className="modal-backdrop"><div className="modal-panel book-form-panel catalog-form-panel" role="dialog" aria-modal="true" aria-labelledby="book-form-title"><div className="modal-header"><div><p className="eyebrow">Ficha de catalogação</p><h2 id="book-form-title">{editing ? 'Editar livro' : quickMode ? 'Cadastro rápido de livros' : 'Registrar novo livro'}</h2></div><button className="modal-close" onClick={() => setFormOpen(false)} aria-label="Fechar formulário"><X size={19} /></button></div><form className="student-form catalog-form" onSubmit={saveBook}>{quickMode && <><section className="catalog-section"><h3>Leitura do próximo livro</h3><p className="page-description">Escaneie o ISBN e depois informe manualmente o Nº de Registro.</p><div className="isbn-search-row"><input value={isbnSearch} onChange={(event) => setIsbnSearch(event.target.value)} placeholder="ISBN / código de barras" /><button type="button" className="secondary-button" onClick={(event) => searchISBN(event)} disabled={isbnLoading}>{isbnLoading ? 'Buscando...' : 'Buscar ISBN'}</button><button type="button" className="secondary-button camera-button" onClick={() => setCameraOpen(true)} disabled={isbnLoading}>Escanear câmera</button></div>{isbnFeedback && <p className={`isbn-status ${isbnFeedback.startsWith('Livro encontrado') ? 'isbn-success' : ''}`}>{isbnFeedback}</p>}<p><strong>Cadastrados nesta sessão:</strong> {quickCount}</p>{lastQuickBook && <p><strong>Último:</strong> {lastQuickBook.numero_registro || 'Sem registro'} — {lastQuickBook.titulo}</p>}</section><LocationFields form={form} updateField={updateField} prateleiras={prateleiras} secoes={secoes} /></>}<section className="catalog-section"><h3>Classificação</h3><div className="form-grid catalog-grid"><label>Nº de Registro<input ref={numeroRegistroRef} name="numero_registro" value={form.numero_registro} onChange={updateField} /></label><label>Nº de Exemplares <span className="required">*</span><input type="number" name="numero_exemplares" value={form.numero_exemplares} onChange={updateField} min="1" step="1" required disabled={quickMode} /></label><label>Tipo da Obra<input name="tipo_obra" value={form.tipo_obra} onChange={updateField} /></label><label>PI<input name="pi" value={form.pi} onChange={updateField} /></label><label>CDD<input name="cdd" value={form.cdd} onChange={updateField} /></label><label>Cutter<input name="cutter" value={form.cutter} onChange={updateField} /></label></div></section><section className="catalog-section"><h3>Identificação da obra</h3><div className="form-grid catalog-grid"><label className="full-field">Autor(es) <span className="required">*</span><input name="autores" value={form.autores} onChange={updateField} placeholder="Nome completo; mais de um autor separado por vírgula" required /></label><label className="full-field">Título <span className="required">*</span><input name="titulo" value={form.titulo} onChange={updateField} required /></label><label className="full-field">Assunto<input name="assunto" value={form.assunto} onChange={updateField} /></label></div></section><section className="catalog-section"><h3>Dados de publicação</h3><div className="form-grid catalog-grid"><label>Local<input name="local" value={form.local} onChange={updateField} /></label><label>Edição<input name="edicao" value={form.edicao} onChange={updateField} /></label><label>Editora<input name="editora" value={form.editora} onChange={updateField} /></label><label>Ano de Publicação<input type="number" name="ano_publicacao" value={form.ano_publicacao} onChange={updateField} min="1000" max="2100" /></label><label>Nº de Páginas<input type="number" name="numero_paginas" value={form.numero_paginas} onChange={updateField} min="1" step="1" /></label><label>Volumes<input type="number" name="volumes" value={form.volumes} onChange={updateField} min="1" step="1" /></label><label>Série<input name="serie" value={form.serie} onChange={updateField} /></label><label>ISBN<input name="isbn" value={form.isbn} onChange={updateField} /></label></div></section><section className="catalog-section"><h3>Observações</h3><label className="full-field"><textarea name="observacoes" value={form.observacoes} onChange={updateField} rows="5" /></label></section><p className="required-note">* Campos obrigatórios. Os exemplares serão criados automaticamente ao salvar um novo livro.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={saving}>{saving ? 'Salvando...' : quickMode ? 'Salvar e próximo' : 'Salvar livro'}</button></div></form></div></div>}
+      {formOpen && <div className="modal-backdrop"><div className="modal-panel book-form-panel catalog-form-panel" role="dialog" aria-modal="true" aria-labelledby="book-form-title"><div className="modal-header"><div><p className="eyebrow">Ficha de catalogação</p><h2 id="book-form-title">{editing ? 'Editar livro' : 'Registrar novo livro'}</h2></div><button className="modal-close" onClick={() => setFormOpen(false)} aria-label="Fechar formulário"><X size={19} /></button></div><form className="student-form catalog-form" onSubmit={saveBook}><section className="catalog-section"><h3>Classificação</h3><div className="form-grid catalog-grid"><label>Nº de Registro<input name="numero_registro" value={form.numero_registro} onChange={updateField} /></label><label>Nº de Exemplares <span className="required">*</span><input type="number" name="numero_exemplares" value={form.numero_exemplares} onChange={updateField} min="1" step="1" required /></label><label>Tipo da Obra<input name="tipo_obra" value={form.tipo_obra} onChange={updateField} /></label><label>PI<input name="pi" value={form.pi} onChange={updateField} /></label><label>CDD<input name="cdd" value={form.cdd} onChange={updateField} /></label><label>Cutter<input name="cutter" value={form.cutter} onChange={updateField} /></label></div></section><section className="catalog-section"><h3>Identificação da obra</h3><div className="form-grid catalog-grid"><label className="full-field">Autor(es) <span className="required">*</span><input name="autores" value={form.autores} onChange={updateField} placeholder="Nome completo; mais de um autor separado por vírgula" required /></label><label className="full-field">Título <span className="required">*</span><input name="titulo" value={form.titulo} onChange={updateField} required /></label><label className="full-field">Assunto<input name="assunto" value={form.assunto} onChange={updateField} /></label></div></section><section className="catalog-section"><h3>Dados de publicação</h3><div className="form-grid catalog-grid"><label>Local<input name="local" value={form.local} onChange={updateField} /></label><label>Edição<input name="edicao" value={form.edicao} onChange={updateField} /></label><label>Editora<input name="editora" value={form.editora} onChange={updateField} /></label><label>Ano de Publicação<input type="number" name="ano_publicacao" value={form.ano_publicacao} onChange={updateField} min="1000" max="2100" /></label><label>Nº de Páginas<input type="number" name="numero_paginas" value={form.numero_paginas} onChange={updateField} min="1" step="1" /></label><label>Volumes<input type="number" name="volumes" value={form.volumes} onChange={updateField} min="1" step="1" /></label><label>Série<input name="serie" value={form.serie} onChange={updateField} /></label><label>ISBN<input name="isbn" value={form.isbn} onChange={updateField} /></label></div></section><section className="catalog-section"><h3>Observações</h3><label className="full-field"><textarea name="observacoes" value={form.observacoes} onChange={updateField} rows="5" /></label></section><p className="required-note">* Campos obrigatórios. Os exemplares serão criados automaticamente ao salvar um novo livro.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar livro'}</button></div></form></div></div>}
       {details && <div className="modal-backdrop"><div className="modal-panel details-panel book-details-panel" role="dialog" aria-modal="true" aria-labelledby="book-details-title"><div className="modal-header"><div><p className="eyebrow">Registro do catálogo</p><h2 id="book-details-title">{details.titulo}</h2></div><button className="modal-close" onClick={() => setDetails(null)} aria-label="Fechar detalhes"><X size={19} /></button></div><dl className="details-grid"><div><dt>Autor(es)</dt><dd>{authorNames(details)}</dd></div><div><dt>Status</dt><dd>{details.ativo ? 'Ativo' : 'Inativo'}</dd></div><div><dt>Subtítulo</dt><dd>{details.subtitulo || 'Não informado'}</dd></div><div><dt>ISBN</dt><dd>{details.isbn || 'Não informado'}</dd></div><div><dt>Categoria</dt><dd>{categoryName(details.categoria_id)}</dd></div><div><dt>Editora</dt><dd>{publisherName(details.editora_id)}</dd></div><div><dt>Idioma</dt><dd>{details.idioma}</dd></div><div><dt>Ano de publicação</dt><dd>{details.ano_publicacao || 'Não informado'}</dd></div><div><dt>Edição</dt><dd>{details.edicao || 'Não informado'}</dd></div><div><dt>Número de páginas</dt><dd>{details.numero_paginas || 'Não informado'}</dd></div><div><dt>Data de cadastro</dt><dd>{formatDate(details.data_cadastro)}</dd></div><div><dt>Última atualização</dt><dd>{formatDate(details.data_atualizacao)}</dd></div><div className="full-detail"><dt>Descrição/observações</dt><dd>{details.descricao || 'Não informado'}</dd></div></dl><div className="modal-actions"><button className="secondary-button" onClick={() => setDetails(null)}>Fechar</button><button className="primary-button" onClick={() => startEdit(details)}><Pencil size={16} /> Editar livro</button></div></div></div>}
     </section>
   )

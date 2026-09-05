@@ -39,8 +39,8 @@ function Shell({ user, onLogout }) {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand" onClick={() => navigate('/inicio')} role="button" tabIndex="0">
-          <span className="brand-mark">BE</span>
-          <span className="brand-name">Biblioteca Escolar</span>
+          <span className="brand-mark"><img src="https://imgs.search.brave.com/YWizr6FdbZHDvD2Pv9Dvwn5V-4-th7Rmhe_MlynNMGk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly91cGxv/YWQud2lraW1lZGlh/Lm9yZy93aWtpcGVk/aWEvY29tbW9ucy9h/L2FkL0JyYXMlQzMl/QTNvX2RvX1BpYXUl/QzMlQUQuc3Zn" alt="" /></span>
+          <span className="brand-name">Biblioteca Lucimar Gomes</span>
         </div>
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">
           {menuOpen ? <X size={20} /> : <Menu size={20} />}

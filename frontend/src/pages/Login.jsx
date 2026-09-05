@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, LogIn, UserRound, X } from 'lucide-react'
+import { LogIn, UserRound, X } from 'lucide-react'
 import { apiRequest } from '../api/client'
 import { forgetUser, getKnownUsers, rememberUser } from '../auth/knownUsers'
 import { storeSessionUser } from '../auth/session'
@@ -72,9 +72,9 @@ export function Login({ onLogin, notice }) {
     <main className="login-page">
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-heading">
-          <span className="login-mark"><BookOpen size={21} /></span>
-          <p className="eyebrow">Sistema administrativo</p>
-          <h1 id="login-title">Biblioteca Escolar</h1>
+             <img className="login-logo" src="https://imgs.search.brave.com/YWizr6FdbZHDvD2Pv9Dvwn5V-4-th7Rmhe_MlynNMGk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly91cGxv/YWQud2lraW1lZGlh/Lm9yZy93aWtpcGVk/aWEvY29tbW9ucy9h/L2FkL0JyYXMlQzMl/QTNvX2RvX1BpYXUl/QzMlQUQuc3Zn" alt="Biblioteca Lucimar Gomes" />
+          <p className="eyebrow">Sistema de Gestão Bibliotecário</p>
+          <h1 id="login-title">Biblioteca Lucimar Gomes</h1>
           <p>Entre para acessar o sistema.</p>
         </div>
         <form onSubmit={submit} className="login-form">
