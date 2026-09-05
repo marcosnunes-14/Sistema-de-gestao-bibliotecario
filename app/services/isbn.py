@@ -9,6 +9,39 @@ from fastapi import HTTPException, status
 from app.schemas.livro import LivroISBNRead, normalize_isbn
 
 
+def _isbn_candidates(isbn: str) -> list[str]:
+    """Return equivalent ISBNs, keeping the scanned value first."""
+    candidates = [isbn]
+    if len(isbn) == 10:
+        base = f"978{isbn[:9]}"
+        check_digit = (10 - sum(int(digit) * (1 if index % 2 == 0 else 3) for index, digit in enumerate(base)) % 10) % 10
+        candidates.append(f"{base}{check_digit}")
+    elif isbn.startswith("978"):
+        base = isbn[3:12]
+        check_value = (11 - sum(int(digit) * (10 - index) for index, digit in enumerate(base)) % 11) % 11
+        candidates.append(f"{base}{'X' if check_value == 10 else check_value}")
+    return candidates
+
+
+def _merge_results(isbn: str, results: list[LivroISBNRead]) -> LivroISBNRead:
+    """Combine providers instead of discarding useful fields from later ones."""
+    merged = LivroISBNRead(isbn=isbn)
+    scalar_fields = (
+        "titulo", "subtitulo", "editora", "data_publicacao", "ano_publicacao",
+        "descricao", "numero_paginas", "idioma", "capa_url",
+    )
+    for result in results:
+        for field in scalar_fields:
+            if not getattr(merged, field) and getattr(result, field):
+                setattr(merged, field, getattr(result, field))
+        for field in ("autores", "categorias"):
+            current = getattr(merged, field)
+            for item in getattr(result, field):
+                if item and item not in current:
+                    current.append(item)
+    return merged
+
+
 def _get_json(url: str) -> dict:
     request = Request(url, headers={"User-Agent": "SistemaBiblioteca/1.0"})
     with urlopen(request, timeout=6) as response:
@@ -82,11 +115,15 @@ def buscar_livro_isbn(value: str) -> LivroISBNRead:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)) from error
     if isbn is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe um ISBN válido.")
+    results: list[LivroISBNRead] = []
+    candidates = _isbn_candidates(isbn)
     for provider in (_google, _open_library):
-        try:
-            result = provider(isbn)
-            if result:
-                return result
-        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError):
-            continue
-    return LivroISBNRead(isbn=isbn)
+        for candidate in candidates:
+            try:
+                result = provider(candidate)
+                if result:
+                    results.append(result)
+                    break
+            except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError, OSError):
+                continue
+    return _merge_results(isbn, results)
