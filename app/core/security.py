@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta, timezone
 import os
 
 import jwt
@@ -30,9 +29,7 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(user: Usuario) -> str:
-    expires_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
-    payload = {"sub": str(user.id), "exp": expires_at, "type": "access"}
+    payload = {"sub": str(user.id), "type": "access"}
     return jwt.encode(payload, get_secret_key(), algorithm="HS256")
 
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeftRight, BookOpen, Boxes, ClipboardList, Home, Library, LogOut, Menu, Users, X } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, Boxes, CircleHelp, ClipboardList, Home, Library, LogOut, Menu, Users, X } from 'lucide-react'
 import { apiRequest, getAccessToken } from './api/client'
 import { clearSession } from './auth/session'
 import { Inicio } from './pages/Inicio'
@@ -34,39 +34,71 @@ function Shell({ user, onLogout }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand" onClick={() => navigate('/inicio')} role="button" tabIndex="0">
-          <span className="brand-mark"><img src="https://imgs.search.brave.com/YWizr6FdbZHDvD2Pv9Dvwn5V-4-th7Rmhe_MlynNMGk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly91cGxv/YWQud2lraW1lZGlh/Lm9yZy93aWtpcGVk/aWEvY29tbW9ucy9h/L2FkL0JyYXMlQzMl/QTNvX2RvX1BpYXUl/QzMlQUQuc3Zn" alt="" /></span>
-          <span className="brand-name">Biblioteca Lucimar Gomes</span>
+    <div className={`app-shell ${location.pathname === '/inicio' ? 'home-shell' : ''}`}>
+      <header className="app-header">
+        <div className="topbar">
+          <button className="help-button" onClick={() => setHelpOpen(true)} title="Sobre o sistema" aria-label="Sobre o sistema">
+            <CircleHelp size={18} strokeWidth={2.5} />
+          </button>
+          <div className="brand" onClick={() => navigate('/inicio')} role="button" tabIndex="0">
+            <span className="brand-name">BLG - Biblioteca Lucimar Gomes</span>
+          </div>
+          <div className="user-area">
+            <span className="connection-status"><span className="status-dot" /><span><small>Perfil conectado</small><strong>{user?.nome || 'Sessão ativa'} · {user?.perfil === 'administrador' ? 'Administrador' : 'Bibliotecário'}</strong></span></span>
+            <button className="logout-button" onClick={onLogout} title="Sair"><LogOut size={16} /><span>Sair</span></button>
+          </div>
         </div>
-        <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">
-          {menuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-        <nav className={`main-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Menu principal">
-          {[...navigation, ...(user?.perfil === 'administrador' ? [{ label: 'Usuários', path: '/usuarios', icon: Users }, { label: 'Auditoria', path: '/auditoria', icon: ClipboardList }] : [])].map(({ label, path, icon: Icon }) => (
-            <button
-              key={path}
-              className={location.pathname === path ? 'nav-item active' : 'nav-item'}
-              onClick={() => { navigate(path); setMenuOpen(false) }}
-            >
-              <Icon size={17} strokeWidth={1.8} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="user-area">
-          <span className="connection-status"><span className="status-dot" /><span><strong>{user?.nome || 'Sessão ativa'}</strong><small>{user?.perfil === 'administrador' ? 'Administrador' : 'Bibliotecário'}</small></span></span>
-          <button className="logout-button" onClick={onLogout} title="Sair"><LogOut size={17} /><span>Sair</span></button>
+        <div className="navigation-bar">
+          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <nav className={`main-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Menu principal">
+            {[...navigation, ...(user?.perfil === 'administrador' ? [{ label: 'Usuários', path: '/usuarios', icon: Users }, { label: 'Auditoria', path: '/auditoria', icon: ClipboardList }] : [])].map(({ label, path, icon: Icon }) => (
+              <button
+                key={path}
+                className={location.pathname === path ? 'nav-item active' : 'nav-item'}
+                onClick={() => { navigate(path); setMenuOpen(false) }}
+              >
+                <Icon size={21} strokeWidth={1.8} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
+        {helpOpen && <div className="help-backdrop" role="presentation" onClick={() => setHelpOpen(false)}>
+          <section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" onClick={() => setHelpOpen(false)} aria-label="Fechar explicação"><X size={18} /></button>
+            <img className="help-logo" src="/DS%20SYSTEM.png" alt="DS System" />
+            <h2 id="help-title">SGB - Sistema de Gestão Bibliotecária</h2>
+            <p className="help-lead">O SGB foi inicialmente projetado como um trabalho escolar. No entanto, o desejo de desenvolver algo 100% funcional, capaz de contribuir de verdade para a nossa instituição, falou mais alto. Assim, o projeto evoluiu para um sistema desenvolvido para facilitar e modernizar o gerenciamento da biblioteca.</p>
+            <p>O SGB reúne em um só lugar o controle de livros, alunos, empréstimos, devoluções e estoque, tornando as tarefas do dia a dia mais rápidas e organizadas.</p>
+            <div className="help-section">
+              <h3>Agradecimentos</h3>
+              <p>Deixo aqui meus sinceros agradecimentos à nossa bibliotecária pelo enorme incentivo para continuarmos desenvolvendo este projeto, sempre contribuindo com ideias, sugestões e apoio. Sua participação foi essencial para nos motivar a transformar uma simples ideia em algo realmente funcional para a nossa instituição.</p>
+              <p className="help-signature">Marcos, 2º A DS</p>
+            </div>
+            <div className="help-section">
+              <h3>Equipe 2º DS</h3>
+              <ul className="help-team">
+                <li><strong>Marcos</strong><span>Líder e desenvolvedor do projeto</span></li>
+                <li><strong>Benedito</strong><span>Planejamento e Organização do Acervo</span></li>
+                <li><strong>Davi</strong><span>Contribuição de Ideias</span></li>
+                <li><strong>Flávio</strong><span>Integrantes do Projeto</span></li>
+                <li><strong>João Guilherme</strong><span>Integrantes do Projeto</span></li>
+              </ul>
+            </div>
+            <button className="primary-button" onClick={() => setHelpOpen(false)}>Entendi</button>
+          </section>
+        </div>}
       </header>
       <main className="page-area">
         <Routes>
           <Route path="/inicio" element={<ProtectedRoute user={user}><Inicio /></ProtectedRoute>} />
           <Route path="/alunos" element={<ProtectedRoute user={user}><Alunos /></ProtectedRoute>} />
-          <Route path="/livros" element={<ProtectedRoute user={user}><Livros /></ProtectedRoute>} />
+          <Route path="/livros" element={<ProtectedRoute user={user}><Livros currentUser={user} /></ProtectedRoute>} />
           <Route path="/emprestimos" element={<ProtectedRoute user={user}><Emprestimos /></ProtectedRoute>} />
           <Route path="/estoque" element={<ProtectedRoute user={user}><Estoque /></ProtectedRoute>} />
           <Route path="/prateleiras" element={<ProtectedRoute user={user}><Prateleiras /></ProtectedRoute>} />

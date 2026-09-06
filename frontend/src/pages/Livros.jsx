@@ -114,7 +114,8 @@ function LocationFields({ form, updateField, prateleiras, secoes }) {
   return <section className="isbn-scanner location-fields"><h2>Localização na biblioteca</h2><div className="form-grid catalog-grid"><label>Prateleira<select name="prateleira_id" value={form.prateleira_id} onChange={(event) => { updateField(event); updateField({ target: { name: 'secao_id', value: '' } }) }}><option value="">Sem localização definida</option>{prateleiras.filter((shelf) => shelf.ativa).map((shelf) => <option value={shelf.id} key={shelf.id}>Prateleira {String(shelf.numero).padStart(2, '0')}</option>)}</select></label><label>Seção<select name="secao_id" value={form.secao_id} onChange={updateField} disabled={!form.prateleira_id}><option value="">Sem seção definida</option>{secoes.filter((section) => section.prateleira_id === Number(form.prateleira_id) && section.ativa).map((section) => <option value={section.id} key={section.id}>Seção {section.numero <= 26 ? String.fromCharCode(64 + section.numero) : section.numero}</option>)}</select></label></div></section>
 }
 
-export function Livros() {
+export function Livros({ currentUser }) {
+  const isAdmin = currentUser?.perfil === 'administrador'
   const [livros, setLivros] = useState([])
   const [autores, setAutores] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -346,9 +347,9 @@ export function Livros() {
 
   return (
     <section className="module-page students-page books-page">
-      <ISBNScanner value={isbnSearch} onChange={(event) => setIsbnSearch(event.target.value)} onSearch={searchISBN} loading={isbnLoading} feedback={isbnFeedback} cover={isbnCover} form={form} updateField={updateField} cameraOpen={cameraOpen} onOpenCamera={() => setCameraOpen(true)} onCloseCamera={() => setCameraOpen(false)} onDetected={handleCameraDetected} />
+      {isAdmin && <ISBNScanner value={isbnSearch} onChange={(event) => setIsbnSearch(event.target.value)} onSearch={searchISBN} loading={isbnLoading} feedback={isbnFeedback} cover={isbnCover} form={form} updateField={updateField} cameraOpen={cameraOpen} onOpenCamera={() => setCameraOpen(true)} onCloseCamera={() => setCameraOpen(false)} onDetected={handleCameraDetected} />}
       {formOpen && !quickMode && <LocationFields form={form} updateField={updateField} prateleiras={prateleiras} secoes={secoes} />}
-      <div className="module-toolbar"><div><p className="eyebrow">Catálogo</p><h1>Livros</h1><p className="page-description">Consulta e manutenção das obras cadastradas na biblioteca.</p></div><div className="modal-actions"><button className="secondary-button" onClick={startQuickCreate}>Cadastro rápido</button><button className="primary-button" onClick={startCreate}><Plus size={16} /> Novo livro</button></div></div>
+      <div className="module-toolbar"><div><p className="eyebrow">Catálogo</p><h1>Livros</h1><p className="page-description">Consulta e manutenção das obras cadastradas na biblioteca.</p></div><div className="modal-actions">{isAdmin && <button className="secondary-button" onClick={startQuickCreate}>Cadastro rápido</button>}<button className="primary-button" onClick={startCreate}><Plus size={16} /> Novo livro</button></div></div>
       <div className="books-filters">
         <form className="search-form" onSubmit={searchBooks}><Search size={17} /><select value={searchField} onChange={(event) => setSearchField(event.target.value)} aria-label="Campo da pesquisa"><option value="titulo">Título</option><option value="autor">Autor</option><option value="isbn">ISBN</option></select><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para pesquisar" aria-label="Pesquisar livros" /><button type="submit">Pesquisar</button></form>
         <select className="filter-select" value={categoryFilter} onChange={(event) => { const value = event.target.value; setCategoryFilter(value); loadLivros({ category: value }) }} aria-label="Filtrar por categoria"><option value="">Todas as categorias</option>{categorias.map((category) => <option value={category.id} key={category.id}>{category.nome}</option>)}</select>
