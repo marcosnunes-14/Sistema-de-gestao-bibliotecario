@@ -36,6 +36,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .known-users-management > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .known-users-management button { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 7px; border: 1px solid #d9e1dd; background: #f7f9f8; color: #65736d; font-size: 11px; }
 .known-users-management button:hover { border-color: #b5c9bb; color: #315b42; }
+.login-developed-by { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 14px 0 0; color: #8092a0; font-size: 11px; }
+.login-developed-by img { width: 70px; height: 50px; object-fit: contain; }
 .app-shell.home-shell { height: 100vh; overflow: hidden; }
 .app-header { position: sticky; top: 0; z-index: 10; }
 .topbar { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 0 30px; background: var(--library-blue); color: #fff; }
@@ -43,6 +45,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; background: #fff; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
 .brand-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .brand-name { font-size: 14px; font-weight: 600; }
+.demerval-logo { display: block; width: 29px; height: 40px; margin-left: 7px; object-fit: contain; }
 .user-area { display: flex; align-items: center; gap: 18px; margin-left: auto; }
 .help-button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.55); border-radius: 50%; background: var(--library-blue-dark); color: #fff; }
 .help-button:hover { background: #0d426c; }
@@ -71,7 +74,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .home-company-logo { display: block; width: 42px; height: 40px; object-fit: contain; }
 .help-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgba(15, 38, 58, .32); }
 .help-dialog { position: relative; width: min(520px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 26px 30px 24px; border: 1px solid var(--library-border); background: #fff; box-shadow: 0 14px 36px rgba(20, 60, 90, .2); }
-.help-logo { display: block; width: 140px; height: auto; max-height: 60px; margin: 0 auto 14px; object-fit: contain; }
+.help-logo { display: block; width: 150px; height: auto; max-height: 140px; margin: 0 auto 14px; object-fit: contain; }
 .help-dialog h2 { margin: 0 28px 14px 0; color: var(--library-blue-dark); font-size: 19px; text-align: center; }
 .help-dialog p { margin: 0 0 14px; color: #5f7180; font-size: 13px; line-height: 1.6; }
 .help-dialog .help-lead { color: #345f82; }
@@ -84,6 +87,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .help-team span { text-align: right; }
 .help-dialog > .primary-button { margin-top: 22px; }
 .help-dialog .modal-close { position: absolute; top: 14px; right: 14px; }
+.ds-system-button { display: block; margin: 16px auto 0; padding: 9px 14px; border: 1px solid #6fa4ca; background: var(--library-blue-soft); color: var(--library-blue-dark); font-size: 12px; font-weight: 600; }
+.ds-system-button:hover { border-color: var(--library-blue); background: #dceefa; }
+.ds-system-dialog h2 { color: var(--library-blue); }
+.ds-system-dialog strong { color: var(--library-blue-dark); font-weight: 600; }
 .eyebrow { margin: 0 0 9px; color: #72827b; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
 h1, h2, p { margin-top: 0; }
 h1 { margin-bottom: 10px; color: #173a2e; font-size: clamp(27px, 4vw, 40px); font-weight: 500; letter-spacing: 0; }
@@ -316,6 +323,10 @@ tbody tr:hover { background: #fafcfb; }
 .shelf-open { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 31px; border: 1px solid #cbd6d0; background: #fff; color: #53635b; font-size: 12px; }
 .shelf-open:hover { border-color: #88a993; color: #1f4d3b; background: #f2f6f3; }
 .shelf-details-panel { width: min(760px, 100%); }
+.shelf-add-book { display: grid; gap: 8px; margin: 18px 26px 0; padding-top: 16px; border-top: 1px solid #e1e8e4; }
+.shelf-add-book h3 { margin: 0 0 3px; color: #315b42; font-size: 13px; }
+.shelf-add-book select { min-height: 36px; padding: 0 9px; border: 1px solid #c8d7e5; background: #fff; color: #293b33; font-size: 13px; }
+.shelf-add-book .primary-button { justify-self: start; }
 
 @media (max-width: 900px) {
   .topbar { gap: 18px; padding: 0 20px; }

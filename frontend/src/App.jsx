@@ -35,6 +35,7 @@ function Shell({ user, onLogout }) {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [dsSystemOpen, setDsSystemOpen] = useState(false)
 
   return (
     <div className={`app-shell ${location.pathname === '/inicio' ? 'home-shell' : ''}`}>
@@ -43,8 +44,9 @@ function Shell({ user, onLogout }) {
           <button className="help-button" onClick={() => setHelpOpen(true)} title="Sobre o sistema" aria-label="Sobre o sistema">
             <CircleHelp size={18} strokeWidth={2.5} />
           </button>
+          <img className="demerval-logo" src="/DEMERVAL.png" alt="Demerval" />
           <div className="brand" onClick={() => navigate('/inicio')} role="button" tabIndex="0">
-            <span className="brand-name">BLG - Biblioteca Lucimar Gomes</span>
+            <span className="brand-name">• BLG - Biblioteca Lucimar Gomes</span>
           </div>
           <div className="user-area">
             <span className="connection-status"><span className="status-dot" /><span><small>Perfil conectado</small><strong>{user?.nome || 'Sessão ativa'} · {user?.perfil === 'administrador' ? 'Administrador' : 'Bibliotecário'}</strong></span></span>
@@ -71,8 +73,8 @@ function Shell({ user, onLogout }) {
         {helpOpen && <div className="help-backdrop" role="presentation" onClick={() => setHelpOpen(false)}>
           <section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(event) => event.stopPropagation()}>
             <button className="modal-close" onClick={() => setHelpOpen(false)} aria-label="Fechar explicação"><X size={18} /></button>
-            <img className="help-logo" src="/DS%20SYSTEM.png" alt="DS System" />
-            <h2 id="help-title">SGB - Sistema de Gestão Bibliotecária</h2>
+            <img className="help-logo" src="/SGB.png" alt="SGB" />
+            <h2 id="help-title">• SGB - Sistema de Gestão Bibliotecária •</h2>
             <p className="help-lead">O SGB foi inicialmente projetado como um trabalho escolar. No entanto, o desejo de desenvolver algo 100% funcional, capaz de contribuir de verdade para a nossa instituição, falou mais alto. Assim, o projeto evoluiu para um sistema desenvolvido para facilitar e modernizar o gerenciamento da biblioteca.</p>
             <p>O SGB reúne em um só lugar o controle de livros, alunos, empréstimos, devoluções e estoque, tornando as tarefas do dia a dia mais rápidas e organizadas.</p>
             <div className="help-section">
@@ -81,16 +83,26 @@ function Shell({ user, onLogout }) {
               <p className="help-signature">Marcos, 2º A DS</p>
             </div>
             <div className="help-section">
-              <h3>Equipe 2º DS</h3>
+              <h3>Equipe de Desenvolvimento</h3>
               <ul className="help-team">
                 <li><strong>Marcos</strong><span>Líder e desenvolvedor do projeto</span></li>
                 <li><strong>Benedito</strong><span>Planejamento e Organização do Acervo</span></li>
                 <li><strong>Davi</strong><span>Contribuição de Ideias</span></li>
-                <li><strong>Flávio</strong><span>Integrantes do Projeto</span></li>
-                <li><strong>João Guilherme</strong><span>Integrantes do Projeto</span></li>
               </ul>
+              <button className="ds-system-button" onClick={() => setDsSystemOpen(true)}>Conheça o DS SYSTEM</button>
             </div>
             <button className="primary-button" onClick={() => setHelpOpen(false)}>Entendi</button>
+          </section>
+        </div>}
+        {dsSystemOpen && <div className="help-backdrop" role="presentation" onClick={() => setDsSystemOpen(false)}>
+          <section className="help-dialog ds-system-dialog" role="dialog" aria-modal="true" aria-labelledby="ds-system-title" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" onClick={() => setDsSystemOpen(false)} aria-label="Fechar apresentação do DS System"><X size={18} /></button>
+            <img className="help-logo" src="/DS SYSTEM 2.png" alt="DS System" />
+            <h2 id="ds-system-title">Conheça o DS SYSTEM</h2>
+            <p>O <strong>DS SYSTEM</strong> foi criado inicialmente e exclusivamente para o desenvolvimento do <strong>SGB - Sistema de Gestão Bibliotecária</strong>. Porém, durante o desenvolvimento, percebemos que o projeto poderia representar o início de algo maior.</p>
+            <p>Nosso objetivo agora é expandir o <strong>DS SYSTEM</strong> para novos projetos, desenvolvendo <strong>sistemas, sites e outras soluções tecnológicas</strong>, colocando em prática os conhecimentos adquiridos no curso de Desenvolvimento de Sistemas.</p>
+            <p>Mais do que um grupo criado para um único trabalho escolar, queremos que o <strong>DS SYSTEM</strong> seja a identidade por trás dos nossos projetos atuais e futuros, sempre buscando transformar ideias e necessidades reais em soluções funcionais.</p>
+            <button className="primary-button" onClick={() => setDsSystemOpen(false)}>Fechar</button>
           </section>
         </div>}
       </header>

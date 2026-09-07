@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Eye, Pencil, RefreshCw, Search, X } from 'lucide-react'
+import { Eye, Pencil, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { apiRequest, getAccessToken } from '../api/client'
 
 const emptyForm = { descricao: '', finalidade: '', genero_principal: '', observacoes: '' }
@@ -21,6 +21,9 @@ export function Prateleiras() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [copyToAdd, setCopyToAdd] = useState('')
+  const [sectionToAdd, setSectionToAdd] = useState('')
+  const [addingCopy, setAddingCopy] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -56,6 +59,29 @@ export function Prateleiras() {
   function shelfCopies(shelf) { return copies.filter((copy) => copy.prateleira_id === shelf.id) }
   function shelfBooks(shelf) { return [...new Set(shelfCopies(shelf).map((copy) => copy.livro_id))].map((id) => books.find((book) => book.id === id)).filter(Boolean) }
   function openEdit(shelf) { setEditing(shelf); setForm({ descricao: shelf.descricao || '', finalidade: shelf.finalidade || '', genero_principal: shelf.genero_principal || '', observacoes: shelf.observacoes || '' }); setSelected(null) }
+
+  function openShelf(shelf) {
+    setSelected(shelf)
+    setCopyToAdd('')
+    setSectionToAdd('')
+  }
+
+  async function addCopyToShelf(event) {
+    event.preventDefault()
+    if (!copyToAdd || !selected) return
+    setAddingCopy(true)
+    setError('')
+    try {
+      await apiRequest(`/api/estoque/exemplares/${copyToAdd}/localizacao`, { method: 'PATCH', body: JSON.stringify({ prateleira_id: selected.id, secao_id: sectionToAdd ? Number(sectionToAdd) : null }) })
+      setFeedback('Livro adicionado à prateleira com sucesso.')
+      setCopyToAdd('')
+      setSectionToAdd('')
+      await load()
+      setSelected((current) => current ? { ...current } : current)
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível adicionar o livro à prateleira.')
+    } finally { setAddingCopy(false) }
+  }
 
   async function save(event) {
     event.preventDefault()

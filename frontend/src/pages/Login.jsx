@@ -94,6 +94,7 @@ export function Login({ onLogin, notice }) {
           <input id="login-password" type="password" autoComplete="current-password" value={senha} onChange={(event) => setSenha(event.target.value)} placeholder="Digite sua senha" required minLength="8" />
           {error && <div className="feedback error" role="alert">{error}</div>}
           <button className="primary-button login-submit" type="submit" disabled={loading}><LogIn size={16} /> {loading ? 'Entrando...' : 'Entrar'}</button>
+          <p className="login-developed-by">Desenvolvido por <img src="/DS%20SYSTEM%202.png" alt="DS System" /></p>
         </form>
         {knownUsers.length > 0 && <div className="known-users-management"><span>Usuários neste computador</span><div>{knownUsers.map((user) => <button key={user.username} onClick={(event) => removeUser(event, user)} title={`Remover ${user.nome}`} aria-label={`Remover ${user.nome} da lista`}><span>{user.nome}</span><X size={13} /></button>)}</div></div>}
       </section>
