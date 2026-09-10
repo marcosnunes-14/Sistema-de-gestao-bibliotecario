@@ -27,7 +27,7 @@ export function Prateleiras() {
     try {
       const [shelfList, bookList, copyList] = await Promise.all([
         apiRequest('/api/estoque/prateleiras'),
-        apiRequest('/api/livros?page=1&page_size=1000'),
+        apiRequest('/api/livros?page=1&page_size=100'),
         apiRequest('/api/estoque/exemplares?page=1&page_size=100'),
       ])
       setShelves(shelfList.sort((left, right) => left.numero - right.numero))
