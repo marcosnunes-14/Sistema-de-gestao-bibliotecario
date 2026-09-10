@@ -293,6 +293,7 @@ def update_livro(db: Session, livro: Livro, data: LivroUpdate) -> Livro:
         raise HTTPException(status_code=404, detail="Categoria não encontrada.")
     prateleira_id = values.pop("prateleira_id", None)
     secao_id = values.pop("secao_id", None)
+    requested_quantity = values.pop("numero_exemplares", None)
     if prateleira_id is not None:
         if db.get(Prateleira, prateleira_id) is None:
             raise HTTPException(status_code=404, detail="Prateleira não encontrada.")
@@ -305,6 +306,30 @@ def update_livro(db: Session, livro: Livro, data: LivroUpdate) -> Livro:
             exemplar.secao_id = secao_id
     elif secao_id is not None:
         raise HTTPException(status_code=422, detail="Informe a prateleira para alterar a seção.")
+    if requested_quantity is not None:
+        copies = list(db.scalars(select(Exemplar).where(Exemplar.livro_id == livro.id).order_by(Exemplar.id)).all())
+        borrowed_count = sum(copy.situacao == SituacaoExemplar.EMPRESTADO for copy in copies)
+        if requested_quantity < borrowed_count:
+            raise HTTPException(status_code=422, detail="A quantidade não pode ser menor que os exemplares emprestados.")
+        if requested_quantity < len(copies):
+            removable = [copy for copy in copies if copy.situacao == SituacaoExemplar.DISPONIVEL]
+            for copy in removable[:len(copies) - requested_quantity]:
+                db.delete(copy)
+        elif requested_quantity > len(copies):
+            shelf_id = prateleira_id or (copies[0].prateleira_id if copies else None)
+            if shelf_id is None:
+                shelf_id = _get_or_create_default_shelf(db).id
+            base_code = livro.numero_registro or f"LIVRO-{livro.id}"
+            existing_codes = {copy.codigo for copy in copies}
+            next_index = len(copies) + 1
+            while len(copies) < requested_quantity:
+                code = f"{base_code}-{next_index:03d}"
+                next_index += 1
+                if code in existing_codes:
+                    continue
+                db.add(Exemplar(codigo=code, livro_id=livro.id, situacao=SituacaoExemplar.DISPONIVEL, prateleira_id=shelf_id, secao_id=secao_id if prateleira_id else (copies[0].secao_id if copies else None)))
+                existing_codes.add(code)
+                copies.append(None)
     for field, value in values.items():
         setattr(livro, field, value)
     try:

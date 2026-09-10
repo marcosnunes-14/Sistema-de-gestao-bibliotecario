@@ -71,6 +71,21 @@ def test_editar_livro_move_todos_os_exemplares_de_prateleira(client):
     assert {copy["prateleira_id"] for copy in copies} == {second_shelf["id"]}
 
 
+def test_editar_quantidade_preserva_um_unico_livro(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    shelf = client.post("/api/estoque/prateleiras", json={"numero": 1}).json()
+    livro = client.post(
+        "/api/livros",
+        json=livro_payload(autor, categoria, editora, numero_exemplares=1, prateleira_id=shelf["id"]),
+    ).json()
+
+    response = client.put(f"/api/livros/{livro['id']}", json={"numero_exemplares": 5})
+
+    assert response.status_code == 200
+    assert len(client.get("/api/livros", params={"isbn": livro["isbn"]}).json()) == 1
+    assert len(client.get("/api/estoque/exemplares", params={"livro_id": livro["id"]}).json()) == 5
+
+
 def test_livros_aparecem_somente_na_prateleira_associada(client):
     autor, categoria, editora = criar_catalogo_base(client)
     first_shelf = client.post("/api/estoque/prateleiras", json={"numero": 1}).json()

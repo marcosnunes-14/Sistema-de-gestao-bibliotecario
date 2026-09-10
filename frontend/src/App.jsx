@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeftRight, BookOpen, Boxes, CircleHelp, ClipboardList, Home, Library, LogOut, Menu, Users, X } from 'lucide-react'
+import { ArrowLeftRight, Boxes, CircleHelp, ClipboardList, Home, Library, LogOut, Menu, Users, X } from 'lucide-react'
 import { apiRequest, getAccessToken } from './api/client'
 import { clearSession } from './auth/session'
 import { Inicio } from './pages/Inicio'
-import { Livros } from './pages/Livros'
 import { Estoque } from './pages/Estoque'
 import { Login } from './pages/Login'
 import { Emprestimos } from './pages/Emprestimos'
@@ -14,7 +13,6 @@ import { Prateleiras } from './pages/Prateleiras'
 
 const navigation = [
   { label: 'Início', path: '/inicio', icon: Home },
-  { label: 'Livros', path: '/livros', icon: BookOpen },
   { label: 'Empréstimos', path: '/emprestimos', icon: ArrowLeftRight },
   { label: 'Estoque', path: '/estoque', icon: Boxes },
   { label: 'Prateleiras', path: '/prateleiras', icon: Library },
@@ -107,7 +105,6 @@ function Shell({ user, onLogout }) {
       <main className="page-area">
         <Routes>
           <Route path="/inicio" element={<ProtectedRoute user={user}><Inicio /></ProtectedRoute>} />
-          <Route path="/livros" element={<ProtectedRoute user={user}><Livros currentUser={user} /></ProtectedRoute>} />
           <Route path="/emprestimos" element={<ProtectedRoute user={user}><Emprestimos /></ProtectedRoute>} />
           <Route path="/estoque" element={<ProtectedRoute user={user}><Estoque /></ProtectedRoute>} />
           <Route path="/prateleiras" element={<ProtectedRoute user={user}><Prateleiras /></ProtectedRoute>} />
