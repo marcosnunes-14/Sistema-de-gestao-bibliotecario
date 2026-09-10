@@ -92,3 +92,22 @@ def test_categoria_inexistente_e_rejeitada(client):
     )
 
     assert response.status_code == 404
+
+
+def test_localizar_exemplar_existente_na_prateleira_sem_criar_livro(client):
+    autor = client.post("/api/livros/autores", json={"nome": "Autor Localização"}).json()
+    livro = client.post(
+        "/api/livros",
+        json={"titulo": "Livro já cadastrado", "autor_ids": [autor["id"]], "numero_exemplares": 1},
+    ).json()
+    exemplar = client.get(f"/api/estoque/exemplares?livro_id={livro['id']}").json()[0]
+    prateleira = criar_prateleira(client, numero=8)
+
+    response = client.patch(
+        f"/api/estoque/exemplares/{exemplar['id']}/localizacao",
+        json={"prateleira_id": prateleira["id"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["livro_id"] == livro["id"]
+    assert client.get(f"/api/livros/{livro['id']}").json()["id"] == livro["id"]

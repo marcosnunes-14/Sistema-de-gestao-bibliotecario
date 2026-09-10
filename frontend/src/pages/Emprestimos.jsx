@@ -15,6 +15,7 @@ function apiMessage(error, fallback) { return error?.message || fallback }
 export function Emprestimos() {
   const [loans, setLoans] = useState([])
   const [students, setStudents] = useState([])
+  const [studentResults, setStudentResults] = useState([])
   const [books, setBooks] = useState([])
   const [copies, setCopies] = useState([])
   const [query, setQuery] = useState('')
@@ -30,10 +31,12 @@ export function Emprestimos() {
   const [loanForm, setLoanForm] = useState(emptyLoan)
   const [saving, setSaving] = useState(false)
   const [returning, setReturning] = useState(false)
+  const [studentSearch, setStudentSearch] = useState('')
+  const [studentSearchLoading, setStudentSearchLoading] = useState(false)
 
   const bookById = (id) => books.find((book) => book.id === id)
   const copyById = (id) => copies.find((copy) => copy.id === id)
-  const selectedStudent = students.find((student) => student.id === Number(loanForm.aluno_id))
+  const selectedStudent = [...students, ...studentResults].find((student) => student.id === Number(loanForm.aluno_id))
   const availableCopies = copies.filter((copy) => copy.situacao === 'disponivel')
   const filteredCopies = availableCopies.filter((copy) => {
     const book = bookById(copy.livro_id)
@@ -50,6 +53,7 @@ export function Emprestimos() {
         apiRequest('/api/estoque/exemplares?page=1&page_size=100'),
       ])
       setStudents(studentList)
+      setStudentResults(studentList)
       setBooks(bookList)
       setCopies(copyList)
     } catch (requestError) {
@@ -75,13 +79,37 @@ export function Emprestimos() {
     loadReferences()
   }, [statusFilter])
 
+  useEffect(() => {
+    if (!loanOpen) return undefined
+    const term = studentSearch.trim()
+    if (!term) {
+      setStudentResults(students)
+      return undefined
+    }
+    const timer = setTimeout(async () => {
+      setStudentSearchLoading(true)
+      try {
+        setStudentResults(await apiRequest(`/api/alunos?nome=${encodeURIComponent(term)}&page=1&page_size=100`))
+      } catch (requestError) {
+        setError(apiMessage(requestError, 'Não foi possível pesquisar os alunos.'))
+      } finally { setStudentSearchLoading(false) }
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [loanOpen, studentSearch, students])
+
   const visibleLoans = useMemo(() => loans, [loans])
 
   function openLoanForm() {
     setLoanForm({ ...emptyLoan, copySearch: '' })
+    setStudentSearch('')
+    setStudentResults(students)
     setLoanOpen(true); setDetails(null); setError('')
   }
   function updateLoanField(event) { setLoanForm((current) => ({ ...current, [event.target.name]: event.target.value })) }
+  function selectStudent(student) {
+    setLoanForm((current) => ({ ...current, aluno_id: String(student.id) }))
+    setStudentSearch(student.nome_completo)
+  }
 
   async function createLoan(event) {
     event.preventDefault()
@@ -108,6 +136,7 @@ export function Emprestimos() {
 
   return (
     <section className="module-page students-page loans-page">
+      {loanOpen && <div className="loan-student-picker"><label>Pesquisar aluno <span className="required">*</span><input value={studentSearch} onChange={(event) => { setStudentSearch(event.target.value); setLoanForm((current) => ({ ...current, aluno_id: '' })) }} placeholder="Nome, matrícula ou turma" aria-label="Pesquisar aluno" autoComplete="off" /></label>{studentSearchLoading && <p className="search-status">Pesquisando alunos...</p>}{studentSearch && !studentSearchLoading && <div className="student-search-results">{studentResults.filter((student) => student.ativo).map((student) => <button type="button" key={student.id} onClick={() => selectStudent(student)}><strong>{student.nome_completo}</strong><span>{student.matricula} · Turma {student.turma || 'não informada'}</span></button>)}{!studentResults.filter((student) => student.ativo).length && <p>Nenhum aluno cadastrado encontrado.</p>}</div>}</div>}
       <div className="module-toolbar"><div><p className="eyebrow">Circulação</p><h1>Empréstimos</h1><p className="page-description">Registro e acompanhamento da circulação de exemplares.</p></div><button className="primary-button" onClick={openLoanForm}><Plus size={16} /> Novo empréstimo</button></div>
       <div className="books-filters loan-filters"><form className="search-form" onSubmit={(event) => { event.preventDefault(); loadLoans() }}><Search size={17} /><select value={queryField} onChange={(event) => setQueryField(event.target.value)} aria-label="Campo da pesquisa"><option value="aluno">Aluno</option><option value="matricula">Matrícula</option><option value="titulo">Livro</option><option value="exemplar">Exemplar</option></select><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para pesquisar" aria-label="Pesquisar empréstimos" /><button type="submit">Pesquisar</button></form><select className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar empréstimos"><option value="ativo">Ativos</option><option value="atrasado">Atrasados</option><option value="devolvido">Devolvidos</option><option value="cancelado">Cancelados</option><option value="todos">Todos</option></select><button className="icon-button" onClick={() => { loadLoans(); loadReferences() }} title="Atualizar empréstimos" aria-label="Atualizar empréstimos"><RefreshCw size={16} /></button></div>
       {feedback && <div className="feedback success" role="status"><Check size={15} /> {feedback}<button onClick={() => setFeedback('')} aria-label="Fechar mensagem"><X size={14} /></button></div>}

@@ -50,6 +50,16 @@ def test_editar_aluno(client, aluno_payload):
     assert response.json()["turma"] == "C"
 
 
+def test_buscar_alunos_por_nome_parcial_sem_diferenciar_maiusculas(client):
+    cadastrar(client, {"nome_completo": "Marcos Silva", "matricula": "BUSCA-001", "turma": "A", "serie_ano": "7º ano", "turno": "Manhã"})
+    cadastrar(client, {"nome_completo": "João Marcos", "matricula": "BUSCA-002", "turma": "B", "serie_ano": "8º ano", "turno": "Tarde"})
+
+    response = client.get("/api/alunos", params={"nome": "MARCOS"})
+
+    assert response.status_code == 200
+    assert {student["nome_completo"] for student in response.json()} == {"Marcos Silva", "João Marcos"}
+
+
 def test_desativar_aluno(client, aluno_payload):
     aluno = cadastrar(client, aluno_payload)
 

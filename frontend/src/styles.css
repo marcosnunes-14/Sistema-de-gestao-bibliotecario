@@ -208,6 +208,9 @@ tbody tr:hover { background: #fafcfb; }
 .exemplar-row small { color: #89958f; font-size: 11px; text-align: right; }
 .stock-details-panel .modal-actions { margin: 9px 26px 24px; }
 .loan-filters .search-form { max-width: 560px; }
+.loan-student-picker { display: grid; gap: 6px; max-width: 700px; margin: 18px 0 -8px; padding: 12px 14px; border: 1px solid #b9d0c0; background: #f2f7f3; }
+.loan-student-picker label { display: grid; gap: 6px; color: #53635b; font-size: 12px; font-weight: 500; }
+.loan-student-picker input { min-height: 36px; padding: 0 10px; border: 1px solid #cbd6d0; background: #fff; color: #293b33; font-size: 13px; }
 .loan-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border: 1px solid #d9e5dd; background: #f2f7f3; color: #477457; font-size: 11px; }
 .loan-badge.overdue { border-color: #ead1cc; background: #fcf2f0; color: #9a5b51; }
 .loan-badge.devolvido { border-color: #dfe5e2; background: #f5f7f6; color: #718078; }
@@ -221,6 +224,11 @@ tbody tr:hover { background: #fafcfb; }
 .loan-step select, .loan-step input, .loan-step textarea { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid #cbd6d0; outline: 0; background: #fff; color: #293b33; font: inherit; font-size: 13px; }
 .loan-step textarea { padding-top: 9px; resize: vertical; }
 .loan-step select:focus, .loan-step input:focus, .loan-step textarea:focus { border-color: #709982; box-shadow: 0 0 0 2px rgba(72, 125, 95, .1); }
+.student-search-results { display: grid; gap: 4px; max-height: 180px; overflow-y: auto; border: 1px solid #cbd6d0; background: #fff; }
+.student-search-results button { display: grid; gap: 2px; padding: 9px 10px; border: 0; border-bottom: 1px solid #edf1ef; background: #fff; color: #53635b; text-align: left; }
+.student-search-results button:hover { background: #f2f7f3; }
+.student-search-results strong { color: #315244; font-size: 12px; }
+.student-search-results span, .search-status { color: #78847f; font-size: 11px; }
 .selection-summary { display: grid; gap: 3px; padding: 10px 12px; border-left: 3px solid #9ab8a5; background: #f4f8f5; }
 .selection-summary strong { color: #315244; font-size: 13px; }
 .selection-summary span { color: #78847f; font-size: 11px; }
@@ -323,6 +331,16 @@ tbody tr:hover { background: #fafcfb; }
 .shelf-open { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 31px; border: 1px solid #cbd6d0; background: #fff; color: #53635b; font-size: 12px; }
 .shelf-open:hover { border-color: #88a993; color: #1f4d3b; background: #f2f6f3; }
 .shelf-details-panel { width: min(760px, 100%); }
+.shelf-book-groups { display: grid; gap: 18px; }
+.shelf-book-group { border: 1px solid #d9e1dd; background: #fff; }
+.shelf-book-group h2 { padding: 14px 16px; border-bottom: 1px solid #d9e1dd; background: #f5f8f6; }
+.shelf-book-group table { min-width: 760px; border: 0; }
+.shelf-book-manager { margin-top: 20px; padding-top: 18px; border-top: 1px solid #e1e8e4; }
+.shelf-book-manager h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; color: #315244; font-size: 13px; }
+.shelf-add-book { display: flex; gap: 8px; }
+.shelf-add-book select { flex: 1; min-height: 36px; padding: 0 9px; border: 1px solid #cbd6d0; color: #53635b; }
+.shelf-book-list { display: grid; gap: 4px; margin-top: 12px; }
+.shelf-book-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; padding-left: 10px; border-bottom: 1px solid #edf1ef; color: #315244; font-size: 12px; }
 .shelf-add-book { display: grid; gap: 8px; margin: 18px 26px 0; padding-top: 16px; border-top: 1px solid #e1e8e4; }
 .shelf-add-book h3 { margin: 0 0 3px; color: #315b42; font-size: 13px; }
 .shelf-add-book select { min-height: 36px; padding: 0 9px; border: 1px solid #c8d7e5; background: #fff; color: #293b33; font-size: 13px; }
