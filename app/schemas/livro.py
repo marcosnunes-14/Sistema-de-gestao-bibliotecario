@@ -150,6 +150,8 @@ class LivroUpdate(BaseModel):
     autor_ids: list[int] | None = Field(default=None, min_length=1)
     autores: str | None = Field(default=None, max_length=1000)
     editora: str | None = Field(default=None, max_length=200)
+    prateleira_id: int | None = Field(default=None, gt=0)
+    secao_id: int | None = Field(default=None, gt=0)
     isbn: str | None = None
     editora_id: int | None = Field(default=None, gt=0)
     ano_publicacao: int | None = Field(default=None, ge=1000, le=2100)

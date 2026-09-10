@@ -20,9 +20,9 @@ def upgrade() -> None:
             batch.add_column(sa.Column("prateleira_id", sa.Integer(), nullable=True))
         if "secao_id" not in exemplar_columns:
             batch.add_column(sa.Column("secao_id", sa.Integer(), nullable=True))
-        if "prateleira_id" not in {index["name"] for index in inspector.get_indexes("exemplares")}:
+        if "ix_exemplares_prateleira_id" not in {index["name"] for index in inspector.get_indexes("exemplares")}:
             batch.create_index("ix_exemplares_prateleira_id", ["prateleira_id"])
-        if "secao_id" not in {index["name"] for index in inspector.get_indexes("exemplares")}:
+        if "ix_exemplares_secao_id" not in {index["name"] for index in inspector.get_indexes("exemplares")}:
             batch.create_index("ix_exemplares_secao_id", ["secao_id"])
     with op.batch_alter_table("prateleiras") as batch:
         if "finalidade" not in shelf_columns:

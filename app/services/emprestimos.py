@@ -33,13 +33,18 @@ def create_exemplar(db: Session, data: ExemplarCreate, usuario: Usuario | None =
         raise HTTPException(status_code=404, detail="Livro não encontrado.")
     if data.situacao == SituacaoExemplar.EMPRESTADO:
         raise HTTPException(status_code=422, detail="Um exemplar novo não pode ser criado como emprestado.")
-    if data.prateleira_id is not None and db.get(Prateleira, data.prateleira_id) is None:
+    shelf = db.get(Prateleira, data.prateleira_id) if data.prateleira_id is not None else db.scalar(select(Prateleira).where(Prateleira.numero == 1))
+    if shelf is None and data.prateleira_id is None:
+        shelf = Prateleira(numero=1, descricao="Prateleira 01")
+        db.add(shelf)
+        db.flush()
+    if shelf is None:
         raise HTTPException(status_code=404, detail="Prateleira não encontrada.")
     if data.secao_id is not None:
         secao = db.get(Secao, data.secao_id)
-        if secao is None or (data.prateleira_id is not None and secao.prateleira_id != data.prateleira_id):
+        if secao is None or secao.prateleira_id != shelf.id:
             raise HTTPException(status_code=422, detail="A seção não pertence à prateleira informada.")
-    exemplar = Exemplar(**data.model_dump(), cadastrado_por_id=usuario.id if usuario else None)
+    exemplar = Exemplar(**data.model_dump(exclude={"prateleira_id"}), prateleira_id=shelf.id, cadastrado_por_id=usuario.id if usuario else None)
     db.add(exemplar)
     try:
         db.commit()

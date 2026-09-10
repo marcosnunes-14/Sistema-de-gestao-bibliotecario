@@ -21,7 +21,7 @@ class Exemplar(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     codigo: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     livro_id: Mapped[int] = mapped_column(ForeignKey("livros.id"), nullable=False, index=True)
-    prateleira_id: Mapped[int | None] = mapped_column(ForeignKey("prateleiras.id"), nullable=True, index=True)
+    prateleira_id: Mapped[int] = mapped_column(ForeignKey("prateleiras.id"), nullable=False, index=True)
     secao_id: Mapped[int | None] = mapped_column(ForeignKey("secoes.id"), nullable=True, index=True)
     cadastrado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True, index=True)
     situacao: Mapped[SituacaoExemplar] = mapped_column(

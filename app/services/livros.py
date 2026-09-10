@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -151,13 +151,50 @@ def _book_query():
     return select(Livro).options(selectinload(Livro.autores)).order_by(Livro.titulo)
 
 
+def _duplicate_book(db: Session, data: LivroCreate | LivroUpdate, current_id: int | None = None) -> Livro | None:
+    query = select(Livro).options(selectinload(Livro.autores))
+    if current_id is not None:
+        query = query.where(Livro.id != current_id)
+    if data.isbn:
+        query = query.where(Livro.isbn == normalize_isbn(data.isbn))
+    else:
+        if not data.titulo:
+            return None
+        query = query.where(func.lower(Livro.titulo) == data.titulo.strip().lower())
+        names = []
+        if data.autor_ids:
+            query = query.join(Livro.autores).where(Autor.id.in_(data.autor_ids))
+        elif data.autores:
+            names = [name.strip().lower() for name in data.autores.replace(";", ",").split(",") if name.strip()]
+            if names:
+                query = query.join(Livro.autores).where(func.lower(Autor.nome).in_(names))
+            else:
+                return None
+        else:
+            return None
+    return db.scalar(query.distinct())
+
+
+def _get_or_create_default_shelf(db: Session) -> Prateleira:
+    shelf = db.scalar(select(Prateleira).where(Prateleira.numero == 1))
+    if shelf is None:
+        shelf = Prateleira(numero=1, descricao="Prateleira 01")
+        db.add(shelf)
+        db.flush()
+    return shelf
+
+
 def create_livro(db: Session, data: LivroCreate) -> Livro:
+    duplicate_book = _duplicate_book(db, data)
+    if duplicate_book:
+        raise duplicate(f"Este livro já está cadastrado no sistema. Livro: {duplicate_book.titulo}")
     authors, publisher, _ = _references(db, data)
-    if data.prateleira_id is not None and db.get(Prateleira, data.prateleira_id) is None:
+    shelf = db.get(Prateleira, data.prateleira_id) if data.prateleira_id is not None else _get_or_create_default_shelf(db)
+    if shelf is None:
         raise HTTPException(status_code=404, detail="Prateleira não encontrada.")
     if data.secao_id is not None:
         secao = db.get(Secao, data.secao_id)
-        if secao is None or secao.prateleira_id != data.prateleira_id:
+        if secao is None or secao.prateleira_id != shelf.id:
             raise HTTPException(status_code=422, detail="A seção não pertence à prateleira informada.")
     values = data.model_dump(exclude={"autor_ids", "autores", "editora", "numero_exemplares", "prateleira_id", "secao_id"})
     values["editora_id"] = publisher.id if publisher else None
@@ -171,12 +208,16 @@ def create_livro(db: Session, data: LivroCreate) -> Livro:
                 codigo=f"{base_code}-{index:03d}",
                 livro_id=livro.id,
                 situacao=SituacaoExemplar.DISPONIVEL,
-                prateleira_id=data.prateleira_id,
+                prateleira_id=shelf.id,
                 secao_id=data.secao_id,
             ))
         db.commit()
     except IntegrityError as error:
         db.rollback()
+        if data.isbn:
+            existing = db.scalar(select(Livro).where(Livro.isbn == normalize_isbn(data.isbn)))
+            if existing:
+                raise duplicate(f"Este livro já está cadastrado no sistema. Livro: {existing.titulo}") from error
         raise duplicate("Já existe um livro com este ISBN.") from error
     db.refresh(livro)
     return livro
@@ -232,6 +273,9 @@ def get_livro_or_404(db: Session, livro_id: int) -> Livro:
 
 
 def update_livro(db: Session, livro: Livro, data: LivroUpdate) -> Livro:
+    duplicate_book = _duplicate_book(db, data, current_id=livro.id) if data.titulo is not None else None
+    if duplicate_book:
+        raise duplicate(f"Este livro já está cadastrado no sistema. Livro: {duplicate_book.titulo}")
     values = data.model_dump(exclude_unset=True)
     if "autor_ids" in values or "autores" in values:
         authors = _authors_from_data(db, data)
@@ -247,6 +291,20 @@ def update_livro(db: Session, livro: Livro, data: LivroUpdate) -> Livro:
         get_editora_or_404(db, values["editora_id"])
     if "categoria_id" in values and values["categoria_id"] is not None and db.get(Categoria, values["categoria_id"]) is None:
         raise HTTPException(status_code=404, detail="Categoria não encontrada.")
+    prateleira_id = values.pop("prateleira_id", None)
+    secao_id = values.pop("secao_id", None)
+    if prateleira_id is not None:
+        if db.get(Prateleira, prateleira_id) is None:
+            raise HTTPException(status_code=404, detail="Prateleira não encontrada.")
+        if secao_id is not None:
+            secao = db.get(Secao, secao_id)
+            if secao is None or secao.prateleira_id != prateleira_id:
+                raise HTTPException(status_code=422, detail="A seção não pertence à prateleira informada.")
+        for exemplar in db.scalars(select(Exemplar).where(Exemplar.livro_id == livro.id)).all():
+            exemplar.prateleira_id = prateleira_id
+            exemplar.secao_id = secao_id
+    elif secao_id is not None:
+        raise HTTPException(status_code=422, detail="Informe a prateleira para alterar a seção.")
     for field, value in values.items():
         setattr(livro, field, value)
     try:

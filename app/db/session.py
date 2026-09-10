@@ -39,8 +39,8 @@ def create_database() -> None:
             exist_ok=True,
         )
     Base.metadata.create_all(bind=engine)
-    _upgrade_existing_schema()
     _ensure_default_shelves()
+    _upgrade_existing_schema()
 
 
 def _upgrade_existing_schema() -> None:
@@ -63,6 +63,14 @@ def _upgrade_existing_schema() -> None:
             connection.execute(text("ALTER TABLE emprestimos ADD COLUMN realizado_por_id INTEGER"))
         if "devolvido_por_id" not in loan_columns:
             connection.execute(text("ALTER TABLE emprestimos ADD COLUMN devolvido_por_id INTEGER"))
+        if "prateleira_id" in exemplar_columns:
+            shelf_id = connection.execute(
+                text("SELECT id FROM prateleiras WHERE numero = 1")
+            ).scalar_one()
+            connection.execute(
+                text("UPDATE exemplares SET prateleira_id = :shelf_id, secao_id = NULL WHERE prateleira_id IS NULL"),
+                {"shelf_id": shelf_id},
+            )
 
 
 def _ensure_default_shelves() -> None:

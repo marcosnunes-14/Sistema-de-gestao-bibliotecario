@@ -111,7 +111,7 @@ function ISBNScanner({ value, onChange, onSearch, loading, feedback, cover, form
 }
 
 function LocationFields({ form, updateField, prateleiras, secoes }) {
-  return <section className="isbn-scanner location-fields"><h2>Localização na biblioteca</h2><div className="form-grid catalog-grid"><label>Prateleira<select name="prateleira_id" value={form.prateleira_id} onChange={(event) => { updateField(event); updateField({ target: { name: 'secao_id', value: '' } }) }}><option value="">Sem prateleira</option>{prateleiras.filter((shelf) => shelf.ativa).sort((left, right) => left.numero - right.numero).map((shelf) => <option value={shelf.id} key={shelf.id}>Prateleira {String(shelf.numero).padStart(2, '0')}</option>)}</select></label><label>Seção<select name="secao_id" value={form.secao_id} onChange={updateField} disabled={!form.prateleira_id}><option value="">Sem seção definida</option>{secoes.filter((section) => section.prateleira_id === Number(form.prateleira_id) && section.ativa).map((section) => <option value={section.id} key={section.id}>Seção {section.numero <= 26 ? String.fromCharCode(64 + section.numero) : section.numero}</option>)}</select></label></div></section>
+  return <section className="isbn-scanner location-fields"><h2>Localização na biblioteca</h2><div className="form-grid catalog-grid"><label>Prateleira <span className="required">*</span><select name="prateleira_id" value={form.prateleira_id} onChange={(event) => { updateField(event); updateField({ target: { name: 'secao_id', value: '' } }) }} required><option value="">Escolha uma prateleira</option>{prateleiras.filter((shelf) => shelf.ativa).sort((left, right) => left.numero - right.numero).map((shelf) => <option value={shelf.id} key={shelf.id}>Prateleira {String(shelf.numero).padStart(2, '0')}</option>)}</select></label><label>Seção<select name="secao_id" value={form.secao_id} onChange={updateField} disabled={!form.prateleira_id}><option value="">Sem seção definida</option>{secoes.filter((section) => section.prateleira_id === Number(form.prateleira_id) && section.ativa).map((section) => <option value={section.id} key={section.id}>Seção {section.numero <= 26 ? String.fromCharCode(64 + section.numero) : section.numero}</option>)}</select></label></div></section>
 }
 
 export function Livros({ currentUser }) {
@@ -288,7 +288,8 @@ export function Livros({ currentUser }) {
     setQuickMode(false)
     setEditing(book)
     setDetails(null)
-    setForm({ numero_registro: book.numero_registro || '', numero_exemplares: '1', tipo_obra: book.tipo_obra || '', pi: book.pi || '', cdd: book.cdd || '', cutter: book.cutter || '', autores: book.autores?.map((author) => author.nome).join(', ') || '', titulo: book.titulo || '', subtitulo: book.subtitulo || '', assunto: book.assunto || '', local: book.local || '', edicao: book.edicao || '', editora: publisherName(book.editora_id) === '—' ? '' : publisherName(book.editora_id), ano_publicacao: book.ano_publicacao || '', numero_paginas: book.numero_paginas || '', volumes: book.volumes || '', serie: book.serie || '', isbn: book.isbn || '', idioma: book.idioma || 'Português', observacoes: book.observacoes || book.descricao || '', prateleira_id: '', secao_id: '' })
+    const currentCopy = exemplares.find((copy) => copy.livro_id === book.id)
+    setForm({ numero_registro: book.numero_registro || '', numero_exemplares: '1', tipo_obra: book.tipo_obra || '', pi: book.pi || '', cdd: book.cdd || '', cutter: book.cutter || '', autores: book.autores?.map((author) => author.nome).join(', ') || '', titulo: book.titulo || '', subtitulo: book.subtitulo || '', assunto: book.assunto || '', local: book.local || '', edicao: book.edicao || '', editora: publisherName(book.editora_id) === '—' ? '' : publisherName(book.editora_id), ano_publicacao: book.ano_publicacao || '', numero_paginas: book.numero_paginas || '', volumes: book.volumes || '', serie: book.serie || '', isbn: book.isbn || '', idioma: book.idioma || 'Português', observacoes: book.observacoes || book.descricao || '', prateleira_id: currentCopy?.prateleira_id ? String(currentCopy.prateleira_id) : '', secao_id: currentCopy?.secao_id ? String(currentCopy.secao_id) : '' })
     setFormOpen(true)
     setFeedback('')
   }
@@ -314,7 +315,16 @@ export function Livros({ currentUser }) {
       if (editing) delete payload.numero_exemplares
       if (!editing && payload.isbn) {
         const existing = await apiRequest(`/api/livros?isbn=${encodeURIComponent(payload.isbn)}`)
-        if (existing.length && !window.confirm('Já existe um livro cadastrado com este ISBN. Deseja continuar mesmo assim?')) return
+        if (existing.length) {
+          setError(`Este livro já está cadastrado no sistema. Livro: ${existing[0].titulo}`)
+          return
+        }
+      } else if (!editing) {
+        const existing = await apiRequest(`/api/livros?titulo=${encodeURIComponent(payload.titulo)}&autor=${encodeURIComponent(payload.autores)}`)
+        if (existing.length) {
+          setError(`Este livro já está cadastrado no sistema. Livro: ${existing[0].titulo}`)
+          return
+        }
       }
       if (editing) await apiRequest(`/api/livros/${editing.id}`, { method: 'PUT', body: JSON.stringify(payload) })
       else await apiRequest('/api/livros', { method: 'POST', body: JSON.stringify(payload) })

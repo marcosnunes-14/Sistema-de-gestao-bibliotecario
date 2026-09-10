@@ -54,6 +54,67 @@ def test_cadastrar_livro_persiste_prateleira_nos_exemplares(client):
     assert all(copy["prateleira_id"] == shelf["id"] for copy in copies.json())
 
 
+def test_editar_livro_move_todos_os_exemplares_de_prateleira(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    first_shelf = client.post("/api/estoque/prateleiras", json={"numero": 1}).json()
+    second_shelf = client.post("/api/estoque/prateleiras", json={"numero": 5}).json()
+    livro = client.post(
+        "/api/livros",
+        json=livro_payload(autor, categoria, editora, numero_exemplares=2, prateleira_id=first_shelf["id"]),
+    ).json()
+
+    response = client.put(f"/api/livros/{livro['id']}", json={"prateleira_id": second_shelf["id"]})
+
+    assert response.status_code == 200
+    copies = client.get("/api/estoque/exemplares", params={"livro_id": livro["id"]}).json()
+    assert len(copies) == 2
+    assert {copy["prateleira_id"] for copy in copies} == {second_shelf["id"]}
+
+
+def test_livros_aparecem_somente_na_prateleira_associada(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    first_shelf = client.post("/api/estoque/prateleiras", json={"numero": 1}).json()
+    second_shelf = client.post("/api/estoque/prateleiras", json={"numero": 2}).json()
+    first_book = client.post(
+        "/api/livros",
+        json=livro_payload(autor, categoria, editora, titulo="Exemplo 1", numero_exemplares=1, prateleira_id=first_shelf["id"]),
+    ).json()
+    second_book = client.post(
+        "/api/livros",
+        json=livro_payload(autor, categoria, editora, titulo="Exemplo 2", isbn="9788535902785", numero_exemplares=1, prateleira_id=second_shelf["id"]),
+    ).json()
+
+    first_contents = client.get("/api/estoque/resumo", params={"prateleira_id": first_shelf["id"]}).json()
+    second_contents = client.get("/api/estoque/resumo", params={"prateleira_id": second_shelf["id"]}).json()
+
+    assert [book["livro_id"] for book in first_contents] == [first_book["id"]]
+    assert [book["livro_id"] for book in second_contents] == [second_book["id"]]
+
+
+def test_bloquear_livro_duplicado_por_isbn_com_mensagem_amigavel(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    client.post("/api/estoque/prateleiras", json={"numero": 1})
+    payload = livro_payload(autor, categoria, editora, numero_exemplares=1, prateleira_id=1)
+    assert client.post("/api/livros", json=payload).status_code == 201
+
+    duplicate = client.post("/api/livros", json={**payload, "titulo": "Outro título"})
+
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == "Este livro já está cadastrado no sistema. Livro: Dom Casmurro"
+
+
+def test_bloquear_livro_duplicado_por_titulo_e_autor_sem_isbn(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    client.post("/api/estoque/prateleiras", json={"numero": 1})
+    payload = livro_payload(autor, categoria, editora, isbn=None, numero_exemplares=1, prateleira_id=1)
+    assert client.post("/api/livros", json=payload).status_code == 201
+
+    duplicate = client.post("/api/livros", json={**payload, "numero_registro": "OUTRO"})
+
+    assert duplicate.status_code == 409
+    assert "Este livro já está cadastrado no sistema" in duplicate.json()["detail"]
+
+
 def test_cadastrar_e_listar_autor_categoria_editora(client):
     autor, categoria, editora = criar_catalogo_base(client)
 

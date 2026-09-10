@@ -29,7 +29,7 @@ def upgrade() -> None:
         for name, column in columns.items():
             if name not in existing:
                 batch.add_column(sa.Column(name, column, nullable=True))
-        if "numero_registro" not in {index["name"] for index in inspector.get_indexes("livros")}:
+        if "ix_livros_numero_registro" not in {index["name"] for index in inspector.get_indexes("livros")}:
             batch.create_index("ix_livros_numero_registro", ["numero_registro"], unique=True)
 
 
