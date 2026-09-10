@@ -4,7 +4,6 @@ import { ArrowLeftRight, BookOpen, Boxes, CircleHelp, ClipboardList, Home, Libra
 import { apiRequest, getAccessToken } from './api/client'
 import { clearSession } from './auth/session'
 import { Inicio } from './pages/Inicio'
-import { Alunos } from './pages/Alunos'
 import { Livros } from './pages/Livros'
 import { Estoque } from './pages/Estoque'
 import { Login } from './pages/Login'
@@ -15,7 +14,6 @@ import { Prateleiras } from './pages/Prateleiras'
 
 const navigation = [
   { label: 'Início', path: '/inicio', icon: Home },
-  { label: 'Alunos', path: '/alunos', icon: Users },
   { label: 'Livros', path: '/livros', icon: BookOpen },
   { label: 'Empréstimos', path: '/emprestimos', icon: ArrowLeftRight },
   { label: 'Estoque', path: '/estoque', icon: Boxes },
@@ -109,7 +107,6 @@ function Shell({ user, onLogout }) {
       <main className="page-area">
         <Routes>
           <Route path="/inicio" element={<ProtectedRoute user={user}><Inicio /></ProtectedRoute>} />
-          <Route path="/alunos" element={<ProtectedRoute user={user}><Alunos /></ProtectedRoute>} />
           <Route path="/livros" element={<ProtectedRoute user={user}><Livros currentUser={user} /></ProtectedRoute>} />
           <Route path="/emprestimos" element={<ProtectedRoute user={user}><Emprestimos /></ProtectedRoute>} />
           <Route path="/estoque" element={<ProtectedRoute user={user}><Estoque /></ProtectedRoute>} />

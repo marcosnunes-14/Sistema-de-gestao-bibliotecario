@@ -38,6 +38,22 @@ def test_cadastrar_livro_com_relacionamentos(client):
     assert body["editora_id"] == editora["id"]
 
 
+def test_cadastrar_livro_persiste_prateleira_nos_exemplares(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    shelf = client.post("/api/estoque/prateleiras", json={"numero": 3}).json()
+
+    response = client.post(
+        "/api/livros",
+        json=livro_payload(autor, categoria, editora, numero_exemplares=1, prateleira_id=shelf["id"]),
+    )
+
+    assert response.status_code == 201
+    copies = client.get("/api/estoque/exemplares", params={"livro_id": response.json()["id"]})
+    assert copies.status_code == 200
+    assert copies.json()
+    assert all(copy["prateleira_id"] == shelf["id"] for copy in copies.json())
+
+
 def test_cadastrar_e_listar_autor_categoria_editora(client):
     autor, categoria, editora = criar_catalogo_base(client)
 
