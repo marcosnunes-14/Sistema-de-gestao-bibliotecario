@@ -10,13 +10,11 @@ import { Emprestimos } from './pages/Emprestimos'
 import { Usuarios } from './pages/Usuarios'
 import { Auditoria } from './pages/Auditoria'
 import { Prateleiras } from './pages/Prateleiras'
-import { Livros } from './pages/Livros'
 
 const navigation = [
   { label: 'Início', path: '/inicio', icon: Home },
   { label: 'Empréstimos', path: '/emprestimos', icon: ArrowLeftRight },
   { label: 'Estoque', path: '/estoque', icon: Boxes },
-  { label: 'Livros', path: '/livros', icon: Library },
   { label: 'Prateleiras', path: '/prateleiras', icon: Library },
 ]
 
@@ -109,7 +107,7 @@ function Shell({ user, onLogout }) {
           <Route path="/inicio" element={<ProtectedRoute user={user}><Inicio /></ProtectedRoute>} />
           <Route path="/emprestimos" element={<ProtectedRoute user={user}><Emprestimos /></ProtectedRoute>} />
           <Route path="/estoque" element={<ProtectedRoute user={user}><Estoque /></ProtectedRoute>} />
-          <Route path="/livros" element={<ProtectedRoute user={user}><Livros currentUser={user} /></ProtectedRoute>} />
+          <Route path="/livros" element={<Navigate to="/prateleiras" replace />} />
           <Route path="/prateleiras" element={<ProtectedRoute user={user}><Prateleiras /></ProtectedRoute>} />
           <Route path="/usuarios" element={<AdminRoute user={user}><Usuarios currentUser={user} /></AdminRoute>} />
           <Route path="/auditoria" element={<AdminRoute user={user}><Auditoria /></AdminRoute>} />

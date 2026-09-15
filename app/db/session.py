@@ -87,6 +87,17 @@ def _upgrade_existing_schema() -> None:
                 text("UPDATE exemplares SET prateleira_id = :shelf_id, secao_id = NULL WHERE prateleira_id IS NULL"),
                 {"shelf_id": shelf_id},
             )
+        for row in connection.execute(text("PRAGMA index_list('livros')")).fetchall():
+            index_name = row[1]
+            unique = row[2]
+            if unique != 1:
+                continue
+            index_columns = [
+                row[2]
+                for row in connection.execute(text(f"PRAGMA index_info('{index_name}')")).fetchall()
+            ]
+            if "isbn" in index_columns:
+                connection.execute(text(f'DROP INDEX IF EXISTS "{index_name}"'))
 
 
 def _ensure_default_shelves() -> None:

@@ -151,28 +151,22 @@ def _book_query():
     return select(Livro).options(selectinload(Livro.autores)).order_by(Livro.titulo)
 
 
-def _duplicate_book(db: Session, data: LivroCreate | LivroUpdate, current_id: int | None = None) -> Livro | None:
-    query = select(Livro).options(selectinload(Livro.autores))
+def _ensure_unique_numero_registro(db: Session, numero_registro: str | None, current_id: int | None = None) -> None:
+    if numero_registro is None:
+        return
+    normalized = numero_registro.strip()
+    if not normalized:
+        return
+    query = select(Livro).where(Livro.numero_registro == normalized)
     if current_id is not None:
         query = query.where(Livro.id != current_id)
-    if data.isbn:
-        query = query.where(Livro.isbn == normalize_isbn(data.isbn))
-    else:
-        if not data.titulo:
-            return None
-        query = query.where(func.lower(Livro.titulo) == data.titulo.strip().lower())
-        names = []
-        if data.autor_ids:
-            query = query.join(Livro.autores).where(Autor.id.in_(data.autor_ids))
-        elif data.autores:
-            names = [name.strip().lower() for name in data.autores.replace(";", ",").split(",") if name.strip()]
-            if names:
-                query = query.join(Livro.autores).where(func.lower(Autor.nome).in_(names))
-            else:
-                return None
-        else:
-            return None
-    return db.scalar(query.distinct())
+    existing = db.scalar(query)
+    if existing is not None:
+        raise duplicate("Este número de registro já está sendo utilizado por outro livro.")
+
+
+def _duplicate_book(db: Session, data: LivroCreate | LivroUpdate, current_id: int | None = None) -> Livro | None:
+    return None
 
 
 def _get_or_create_default_shelf(db: Session) -> Prateleira:
@@ -185,9 +179,7 @@ def _get_or_create_default_shelf(db: Session) -> Prateleira:
 
 
 def create_livro(db: Session, data: LivroCreate) -> Livro:
-    duplicate_book = _duplicate_book(db, data)
-    if duplicate_book:
-        raise duplicate(f"Este livro já está cadastrado no sistema. Livro: {duplicate_book.titulo}")
+    _ensure_unique_numero_registro(db, data.numero_registro)
     authors, publisher, _ = _references(db, data)
     shelf = db.get(Prateleira, data.prateleira_id) if data.prateleira_id is not None else _get_or_create_default_shelf(db)
     if shelf is None:
@@ -214,11 +206,9 @@ def create_livro(db: Session, data: LivroCreate) -> Livro:
         db.commit()
     except IntegrityError as error:
         db.rollback()
-        if data.isbn:
-            existing = db.scalar(select(Livro).where(Livro.isbn == normalize_isbn(data.isbn)))
-            if existing:
-                raise duplicate(f"Este livro já está cadastrado no sistema. Livro: {existing.titulo}") from error
-        raise duplicate("Já existe um livro com este ISBN.") from error
+        if data.numero_registro and data.numero_registro.strip():
+            raise duplicate("Este número de registro já está sendo utilizado por outro livro.") from error
+        raise duplicate("Não foi possível cadastrar este livro.") from error
     db.refresh(livro)
     return livro
 
@@ -273,9 +263,8 @@ def get_livro_or_404(db: Session, livro_id: int) -> Livro:
 
 
 def update_livro(db: Session, livro: Livro, data: LivroUpdate) -> Livro:
-    duplicate_book = _duplicate_book(db, data, current_id=livro.id) if data.titulo is not None else None
-    if duplicate_book:
-        raise duplicate(f"Este livro já está cadastrado no sistema. Livro: {duplicate_book.titulo}")
+    if data.numero_registro is not None:
+        _ensure_unique_numero_registro(db, data.numero_registro, current_id=livro.id)
     values = data.model_dump(exclude_unset=True)
     if "autor_ids" in values or "autores" in values:
         authors = _authors_from_data(db, data)
@@ -336,6 +325,38 @@ def update_livro(db: Session, livro: Livro, data: LivroUpdate) -> Livro:
         db.commit()
     except IntegrityError as error:
         db.rollback()
-        raise duplicate("Já existe um livro com este ISBN.") from error
+        raise duplicate("Este número de registro já está sendo utilizado por outro livro.") from error
     db.refresh(livro)
     return livro
+
+
+def clone_livro(db: Session, livro: Livro) -> Livro:
+    first_copy = db.scalar(select(Exemplar).where(Exemplar.livro_id == livro.id).order_by(Exemplar.id))
+    payload = LivroCreate(
+        numero_registro=None,
+        titulo=livro.titulo,
+        tipo_obra=livro.tipo_obra,
+        pi=livro.pi,
+        cdd=livro.cdd,
+        cutter=livro.cutter,
+        assunto=livro.assunto,
+        local=livro.local,
+        volumes=livro.volumes,
+        serie=livro.serie,
+        observacoes=livro.observacoes,
+        subtitulo=livro.subtitulo,
+        autores=", ".join(author.nome for author in livro.autores),
+        isbn=livro.isbn,
+        editora=livro.editora.nome if livro.editora else None,
+        editora_id=livro.editora_id,
+        numero_exemplares=1,
+        prateleira_id=first_copy.prateleira_id if first_copy else None,
+        secao_id=first_copy.secao_id if first_copy else None,
+        ano_publicacao=livro.ano_publicacao,
+        edicao=livro.edicao,
+        categoria_id=livro.categoria_id,
+        idioma=livro.idioma,
+        numero_paginas=livro.numero_paginas,
+        descricao=livro.descricao,
+    )
+    return create_livro(db, payload)

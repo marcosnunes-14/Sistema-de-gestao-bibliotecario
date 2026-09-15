@@ -112,10 +112,10 @@ def test_bloquear_livro_duplicado_por_isbn_com_mensagem_amigavel(client):
     payload = livro_payload(autor, categoria, editora, numero_exemplares=1, prateleira_id=1)
     assert client.post("/api/livros", json=payload).status_code == 201
 
-    duplicate = client.post("/api/livros", json={**payload, "titulo": "Outro título"})
+    duplicate = client.post("/api/livros", json={**payload, "titulo": "Outro título", "numero_registro": "OUTRO"})
 
-    assert duplicate.status_code == 409
-    assert duplicate.json()["detail"] == "Este livro já está cadastrado no sistema. Livro: Dom Casmurro"
+    assert duplicate.status_code == 201
+    assert duplicate.json()["titulo"] == "Outro título"
 
 
 def test_bloquear_livro_duplicado_por_titulo_e_autor_sem_isbn(client):
@@ -124,10 +124,10 @@ def test_bloquear_livro_duplicado_por_titulo_e_autor_sem_isbn(client):
     payload = livro_payload(autor, categoria, editora, isbn=None, numero_exemplares=1, prateleira_id=1)
     assert client.post("/api/livros", json=payload).status_code == 201
 
-    duplicate = client.post("/api/livros", json={**payload, "numero_registro": "OUTRO"})
+    duplicate = client.post("/api/livros", json={**payload, "numero_registro": "OUTRO", "titulo": "Dom Casmurro"})
 
-    assert duplicate.status_code == 409
-    assert "Este livro já está cadastrado no sistema" in duplicate.json()["detail"]
+    assert duplicate.status_code == 201
+    assert duplicate.json()["titulo"] == "Dom Casmurro"
 
 
 def test_cadastrar_e_listar_autor_categoria_editora(client):
@@ -163,12 +163,13 @@ def test_isbn_e_normalizado_e_nao_pode_repetir(client):
     )
     segundo = client.post(
         "/api/livros",
-        json=livro_payload(autor, categoria, editora, titulo="Outro livro"),
+        json=livro_payload(autor, categoria, editora, titulo="Outro livro", numero_registro="OUTRO-REGISTRO"),
     )
 
     assert primeiro.status_code == 201
     assert primeiro.json()["isbn"] == "9788535902778"
-    assert segundo.status_code == 409
+    assert segundo.status_code == 201
+    assert segundo.json()["isbn"] == "9788535902778"
 
 
 def test_validar_referencias_e_dados_invalidos(client):
@@ -182,6 +183,58 @@ def test_validar_referencias_e_dados_invalidos(client):
 
     assert response.status_code == 404
     assert autor_vazio.status_code == categoria_vazia.status_code == editora_vazia.status_code == 422
+
+
+def test_permite_varios_exemplares_com_mesmo_isbn_e_bloqueia_numero_registro_duplicado(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    shelf = client.post("/api/estoque/prateleiras", json={"numero": 1}).json()
+    payload = livro_payload(autor, categoria, editora, numero_registro="1050", numero_exemplares=1, prateleira_id=shelf["id"])
+
+    primeiro = client.post("/api/livros", json=payload)
+    duplicado = client.post(
+        "/api/livros",
+        json={**payload, "titulo": "Dom Casmurro Cópia", "numero_registro": "1051", "isbn": "9788535902778"},
+    )
+    registro_repetido = client.post(
+        "/api/livros",
+        json={**payload, "titulo": "Outro título", "numero_registro": "1050", "isbn": "9788535902778"},
+    )
+
+    assert primeiro.status_code == 201
+    assert duplicado.status_code == 201
+    assert registro_repetido.status_code == 409
+    assert registro_repetido.json()["detail"] == "Este número de registro já está sendo utilizado por outro livro."
+
+
+def test_clonar_livro_cria_novo_registro_e_nao_altera_original(client):
+    autor, categoria, editora = criar_catalogo_base(client)
+    shelf = client.post("/api/estoque/prateleiras", json={"numero": 4}).json()
+    original = client.post(
+        "/api/livros",
+        json=livro_payload(
+            autor,
+            categoria,
+            editora,
+            titulo="Dom Casmurro",
+            isbn="9788535902778",
+            numero_registro="1050",
+            numero_exemplares=2,
+            prateleira_id=shelf["id"],
+            observacoes="Observação original",
+        ),
+    ).json()
+
+    clone = client.post(f"/api/livros/{original['id']}/clone")
+
+    assert clone.status_code == 201
+    body = clone.json()
+    assert body["id"] != original["id"]
+    assert body["titulo"] == original["titulo"]
+    assert body["isbn"] == original["isbn"]
+    assert body["numero_registro"] is None
+    assert body["observacoes"] == original["observacoes"]
+    assert body["prateleira_id"] == original["prateleira_id"] or body["prateleira_id"] == shelf["id"]
+    assert client.get(f"/api/livros/{original['id']}").json()["numero_registro"] == "1050"
 
 
 def test_editar_e_desativar_livro(client):

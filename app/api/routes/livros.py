@@ -14,7 +14,7 @@ from app.services.localizacao import (
 	create_categoria, get_categoria_or_404, list_categorias, update_categoria, update_categoria_status,
 )
 from app.services.livros import (
-	create_autor, create_editora, create_livro, get_autor_or_404, get_editora_or_404,
+	clone_livro, create_autor, create_editora, create_livro, get_autor_or_404, get_editora_or_404,
 	get_livro_or_404, list_autores, list_editoras, list_livros, update_autor,
 	update_editora, update_livro, update_status,
 )
@@ -113,6 +113,11 @@ def listar_livros(
 @router.get("/{livro_id}", response_model=LivroRead)
 def consultar_livro(livro_id: int, db: DbSession) -> LivroRead:
 	return get_livro_or_404(db, livro_id)
+
+
+@router.post("/{livro_id}/clone", response_model=LivroRead, status_code=status.HTTP_201_CREATED)
+def clonar_livro(livro_id: int, db: DbSession) -> LivroRead:
+	return clone_livro(db, get_livro_or_404(db, livro_id))
 
 
 @router.put("/{livro_id}", response_model=LivroRead)

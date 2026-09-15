@@ -52,7 +52,7 @@ class Livro(Base):
     serie: Mapped[str | None] = mapped_column(String(200), nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
     subtitulo: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    isbn: Mapped[str | None] = mapped_column(String(13), unique=True, nullable=True, index=True)
+    isbn: Mapped[str | None] = mapped_column(String(13), nullable=True, index=True)
     editora_id: Mapped[int | None] = mapped_column(ForeignKey("editoras.id"), nullable=True, index=True)
     ano_publicacao: Mapped[int | None] = mapped_column(Integer, nullable=True)
     edicao: Mapped[str | None] = mapped_column(String(50), nullable=True)
