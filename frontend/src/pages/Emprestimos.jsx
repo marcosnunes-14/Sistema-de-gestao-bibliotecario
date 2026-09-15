@@ -4,7 +4,7 @@ import { apiRequest, getAccessToken } from '../api/client'
 
 const statusNames = { ativo: 'Ativo', atrasado: 'Atrasado', devolvido: 'Devolvido', cancelado: 'Cancelado' }
 const statusClass = (status) => status === 'atrasado' ? 'overdue' : status
-const emptyLoan = { aluno_id: '', exemplar_id: '', data_prevista_devolucao: '', observacoes: '' }
+const emptyLoan = { aluno_id: '', exemplar_id: '', data_prevista_devolucao: '', observacoes: '', copySearch: '' }
 
 function dateTime(value) {
   return value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'
