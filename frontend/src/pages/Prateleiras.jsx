@@ -156,8 +156,8 @@ export function Prateleiras() {
   async function loadReferences() {
     const [shelfList, bookList, copyList, authors, categories, publishers, sections] = await Promise.all([
       apiRequest('/api/estoque/prateleiras'),
-      apiRequest('/api/livros?page=1&page_size=200'),
-      apiRequest('/api/estoque/exemplares?page=1&page_size=200'),
+      apiRequest('/api/livros?page=1&page_size=100'),
+      apiRequest('/api/estoque/exemplares?page=1&page_size=100'),
       apiRequest('/api/livros/autores?page=1&page_size=100'),
       apiRequest('/api/livros/categorias?page=1&page_size=100'),
       apiRequest('/api/livros/editoras?page=1&page_size=100'),
