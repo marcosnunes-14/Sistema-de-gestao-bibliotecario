@@ -44,15 +44,16 @@ describe('empréstimos', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /novo empréstimo/i })).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: /novo empréstimo/i }))
 
-    fireEvent.change(screen.getByLabelText(/^Pesquisar aluno/i), { target: { value: 'João' } })
-    fireEvent.click(await screen.findByRole('button', { name: /joão silva/i }))
+    expect(screen.queryByRole('combobox', { name: /aluno/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /exemplar/i })).not.toBeInTheDocument()
 
-    expect(screen.getAllByText(/joão silva/i).length).toBeGreaterThan(0)
+    fireEvent.change(screen.getByLabelText(/^Nome do aluno/i), { target: { value: 'João Silva' } })
+    fireEvent.change(screen.getByLabelText(/^Série/i), { target: { value: '3A' } })
+    fireEvent.change(screen.getByLabelText(/^Código do livro/i), { target: { value: 'C-101' } })
+    fireEvent.change(screen.getByLabelText(/^Nome do livro/i), { target: { value: 'O Pequeno Príncipe' } })
+    fireEvent.change(screen.getByLabelText(/^Autor/i), { target: { value: 'Antoine de Saint-Exupéry' } })
 
-    const exemplarSearch = screen.getByLabelText(/^Pesquisar exemplar ou livro/i)
-    fireEvent.change(exemplarSearch, { target: { value: 'C-101' } })
-
-    expect(exemplarSearch).toHaveValue('C-101')
-    expect(screen.getByLabelText(/^Exemplar/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Nome do aluno/i)).toHaveValue('João Silva')
+    expect(screen.getByLabelText(/^Código do livro/i)).toHaveValue('C-101')
   })
 })

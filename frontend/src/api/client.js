@@ -11,7 +11,12 @@ export async function apiRequest(path, options = {}) {
   if (options.body) headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...requestOptions, headers })
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...requestOptions, headers })
+  } catch (error) {
+    throw new Error('Não foi possível conectar à API. Inicie o backend com: uvicorn app.main:app --reload', { cause: error })
+  }
   if (!response.ok) {
     if (response.status === 401 && !skipAuthRedirect && !path.includes('/api/auth/login')) {
       sessionStorage.removeItem('biblioteca_access_token')

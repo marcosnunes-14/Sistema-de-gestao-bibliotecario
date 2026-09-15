@@ -1,77 +1,26 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeftRight, Check, Eye, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { apiRequest, getAccessToken } from '../api/client'
 
 const statusNames = { ativo: 'Ativo', atrasado: 'Atrasado', devolvido: 'Devolvido', cancelado: 'Cancelado' }
-const statusClass = (status) => status === 'atrasado' ? 'overdue' : status
-const emptyLoan = {
-  nome_aluno: '',
-  serie_aluno: '',
-  codigo_livro: '',
-  nome_livro: '',
-  autor_livro: '',
-  data_entrega: '',
-  data_prevista_devolucao: '',
-  observacoes: '',
-}
-
-function dateTime(value) {
-  return value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'
-}
-function dateOnly(value) { return value ? new Intl.DateTimeFormat('pt-BR').format(new Date(value)) : '—' }
-function apiMessage(error, fallback) { return error?.message || fallback }
+const emptyLoan = { nome_aluno: '', serie_aluno: '', codigo_livro: '', nome_livro: '', autor_livro: '', data_entrega: '', data_prevista_devolucao: '', observacoes: '' }
+const dateOnly = (value) => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(value)) : '—'
+const apiMessage = (error, fallback) => error instanceof TypeError ? 'Não foi possível conectar à API. Inicie o backend com: uvicorn app.main:app --reload' : error?.message || fallback
 
 export function Emprestimos() {
   const [loans, setLoans] = useState([])
-  const [returnedLoans, setReturnedLoans] = useState([])
-  const [students, setStudents] = useState([])
-  const [studentResults, setStudentResults] = useState([])
-  const [books, setBooks] = useState([])
-  const [copies, setCopies] = useState([])
   const [query, setQuery] = useState('')
   const [queryField, setQueryField] = useState('aluno')
   const [statusFilter, setStatusFilter] = useState('ativo')
   const [loading, setLoading] = useState(true)
-  const [referencesLoading, setReferencesLoading] = useState(false)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
   const [loanOpen, setLoanOpen] = useState(false)
-  const [returnLoan, setReturnLoan] = useState(null)
-  const [details, setDetails] = useState(null)
   const [loanForm, setLoanForm] = useState(emptyLoan)
   const [saving, setSaving] = useState(false)
+  const [details, setDetails] = useState(null)
+  const [returnLoan, setReturnLoan] = useState(null)
   const [returning, setReturning] = useState(false)
-  const [studentSearch, setStudentSearch] = useState('')
-  const [studentSearchLoading, setStudentSearchLoading] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
-  const [historyLoading, setHistoryLoading] = useState(false)
-
-  const bookById = (id) => books.find((book) => book.id === id)
-  const copyById = (id) => copies.find((copy) => copy.id === id)
-  const selectedStudent = [...students, ...studentResults].find((student) => student.id === Number(loanForm.aluno_id))
-  const availableCopies = copies.filter((copy) => copy.situacao === 'disponivel')
-  const filteredCopies = availableCopies.filter((copy) => {
-    const book = bookById(copy.livro_id)
-    const term = (loanForm.copySearch || '').toLocaleLowerCase()
-    return !term || copy.codigo.toLocaleLowerCase().includes(term) || book?.titulo.toLocaleLowerCase().includes(term) || book?.autores?.some((author) => author.nome.toLocaleLowerCase().includes(term))
-  })
-
-  async function loadReferences() {
-    setReferencesLoading(true)
-    try {
-      const [studentList, bookList, copyList] = await Promise.all([
-        apiRequest('/api/alunos?page=1&page_size=100'),
-        apiRequest('/api/livros?page=1&page_size=100'),
-        apiRequest('/api/estoque/exemplares?page=1&page_size=100'),
-      ])
-      setStudents(studentList)
-      setStudentResults(studentList)
-      setBooks(bookList)
-      setCopies(copyList)
-    } catch (requestError) {
-      setError(apiMessage(requestError, 'Não foi possível carregar alunos, livros e exemplares.'))
-    } finally { setReferencesLoading(false) }
-  }
 
   async function loadLoans() {
     setLoading(true)
@@ -81,122 +30,62 @@ export function Emprestimos() {
       if (statusFilter !== 'todos') params.set('situacao', statusFilter)
       if (query.trim()) params.set(queryField, query.trim())
       setLoans(await apiRequest(`/api/emprestimos?${params}`))
-    } catch (requestError) { setError(apiMessage(requestError, 'Não foi possível carregar os empréstimos.')) }
-    finally { setLoading(false) }
-  }
-
-  async function loadHistory() {
-    setHistoryLoading(true)
-    try {
-      setReturnedLoans(await apiRequest('/api/emprestimos/devolvidos?page=1&page_size=100'))
     } catch (requestError) {
-      setError(apiMessage(requestError, 'Não foi possível carregar o histórico de devoluções.'))
-    } finally { setHistoryLoading(false) }
+      setError(apiMessage(requestError, 'Não foi possível carregar os empréstimos.'))
+    } finally { setLoading(false) }
   }
 
   useEffect(() => {
-    if (!getAccessToken()) { setLoading(false); setError('Faça login para consultar os empréstimos.'); return }
+    if (!getAccessToken()) {
+      setLoading(false)
+      setError('Faça login para consultar os empréstimos.')
+      return
+    }
     loadLoans()
-    loadReferences()
   }, [statusFilter])
 
-  useEffect(() => {
-    if (!loanOpen) return undefined
-    const term = studentSearch.trim()
-    if (!term) {
-      setStudentResults(students)
-      return undefined
-    }
-    const timer = setTimeout(async () => {
-      setStudentSearchLoading(true)
-      try {
-        setStudentResults(await apiRequest(`/api/alunos?nome=${encodeURIComponent(term)}&page=1&page_size=100`))
-      } catch (requestError) {
-        setError(apiMessage(requestError, 'Não foi possível pesquisar os alunos.'))
-      } finally { setStudentSearchLoading(false) }
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [loanOpen, studentSearch, students])
-
-  const visibleLoans = useMemo(() => loans, [loans])
-
-  function openLoanForm() {
-    setLoanForm({ ...emptyLoan })
-    setStudentSearch('')
-    setStudentResults(students)
-    setLoanOpen(true); setDetails(null); setError('')
+  function updateLoanField(event) {
+    setLoanForm((current) => ({ ...current, [event.target.name]: event.target.value }))
   }
-  function updateLoanField(event) { setLoanForm((current) => ({ ...current, [event.target.name]: event.target.value })) }
 
   async function createLoan(event) {
     event.preventDefault()
-    const requiredFields = [
-      ['Nome do aluno', loanForm.nome_aluno],
-      ['Série', loanForm.serie_aluno],
-      ['Código do livro', loanForm.codigo_livro],
-      ['Nome do livro', loanForm.nome_livro],
-      ['Autor', loanForm.autor_livro],
-      ['Data de entrega', loanForm.data_entrega],
-      ['Data de devolução', loanForm.data_prevista_devolucao],
-    ]
-    const missing = requiredFields.find(([, value]) => !String(value || '').trim())
-    if (missing) {
-      setError(`${missing[0]} é obrigatório.`)
-      return
-    }
-    setSaving(true); setError('')
+    const required = [['Nome do aluno', 'nome_aluno'], ['Série', 'serie_aluno'], ['Código do livro', 'codigo_livro'], ['Nome do livro', 'nome_livro'], ['Autor', 'autor_livro'], ['Data de entrega', 'data_entrega'], ['Data de devolução', 'data_prevista_devolucao']]
+    const missing = required.find(([label, field]) => !String(loanForm[field] || '').trim())
+    if (missing) { setError(`${missing[0]} é obrigatório.`); return }
+    if (loanForm.data_prevista_devolucao <= loanForm.data_entrega) { setError('A data de devolução deve ser posterior à data de entrega.'); return }
+    setSaving(true)
+    setError('')
     try {
-      await apiRequest('/api/emprestimos', {
-        method: 'POST',
-        body: JSON.stringify({
-          nome_aluno: loanForm.nome_aluno.trim(),
-          serie_aluno: loanForm.serie_aluno.trim(),
-          codigo_livro: loanForm.codigo_livro.trim(),
-          nome_livro: loanForm.nome_livro.trim(),
-          autor_livro: loanForm.autor_livro.trim(),
-          data_entrega: `${loanForm.data_entrega}T00:00:00`,
-          data_prevista_devolucao: `${loanForm.data_prevista_devolucao}T23:59:00`,
-          observacoes: loanForm.observacoes.trim() || null,
-        }),
-      })
+      await apiRequest('/api/emprestimos', { method: 'POST', body: JSON.stringify({
+        nome_aluno: loanForm.nome_aluno.trim(), serie_aluno: loanForm.serie_aluno.trim(), codigo_livro: loanForm.codigo_livro.trim(), nome_livro: loanForm.nome_livro.trim(), autor_livro: loanForm.autor_livro.trim(), data_entrega: `${loanForm.data_entrega}T00:00:00`, data_prevista_devolucao: `${loanForm.data_prevista_devolucao}T23:59:00`, observacoes: loanForm.observacoes.trim() || null,
+      }) })
       setLoanOpen(false)
+      setLoanForm({ ...emptyLoan })
       setFeedback('Empréstimo realizado com sucesso.')
-      await Promise.all([loadLoans(), loadReferences()])
-    } catch (requestError) {
-      setError(apiMessage(requestError, 'Não foi possível registrar o empréstimo.'))
-    } finally {
-      setSaving(false)
-    }
+      await loadLoans()
+    } catch (requestError) { setError(apiMessage(requestError, 'Não foi possível registrar o empréstimo.')) }
+    finally { setSaving(false) }
   }
 
   async function registerReturn() {
-    if (!returnLoan || !window.confirm(`Confirmar devolução de "${returnLoan.livro_titulo}" para o exemplar ${returnLoan.exemplar_codigo}?`)) return
-    setReturning(true); setError('')
+    if (!returnLoan || !window.confirm(`Confirmar devolução de "${returnLoan.livro_titulo}"?`)) return
+    setReturning(true)
     try {
       await apiRequest(`/api/emprestimos/${returnLoan.id}/devolucao`, { method: 'POST', body: JSON.stringify({}) })
-      setReturnLoan(null); setFeedback('Devolução registrada com sucesso.')
-      await Promise.all([loadLoans(), loadReferences(), historyOpen ? loadHistory() : Promise.resolve()])
+      setReturnLoan(null); setFeedback('Devolução registrada com sucesso.'); await loadLoans()
     } catch (requestError) { setError(apiMessage(requestError, 'Não foi possível registrar a devolução.')) }
     finally { setReturning(false) }
   }
 
-  return (
-    <section className="module-page students-page loans-page">
-      {loanOpen && <div className="loan-student-picker"><label>Pesquisar aluno <span className="required">*</span><input value={studentSearch} onChange={(event) => { setStudentSearch(event.target.value); setLoanForm((current) => ({ ...current, aluno_id: '' })) }} placeholder="Nome, matrícula ou turma" aria-label="Pesquisar aluno" autoComplete="off" /></label>{studentSearchLoading && <p className="search-status">Pesquisando alunos...</p>}{studentSearch && !studentSearchLoading && <div className="student-search-results">{studentResults.filter((student) => student.ativo).map((student) => <button type="button" key={student.id} onClick={() => selectStudent(student)}><strong>{student.nome_completo}</strong><span>{student.matricula} · Turma {student.turma || 'não informada'}</span></button>)}{!studentResults.filter((student) => student.ativo).length && <p>Nenhum aluno cadastrado encontrado.</p>}</div>}</div>}
-      <div className="module-toolbar"><div><p className="eyebrow">Circulação</p><h1>Empréstimos</h1><p className="page-description">Registro e acompanhamento da circulação de exemplares.</p></div><button className="primary-button" onClick={openLoanForm}><Plus size={16} /> Novo empréstimo</button></div>
-      <div className="books-filters loan-filters"><form className="search-form" onSubmit={(event) => { event.preventDefault(); loadLoans() }}><Search size={17} /><select value={queryField} onChange={(event) => setQueryField(event.target.value)} aria-label="Campo da pesquisa"><option value="aluno">Aluno</option><option value="matricula">Matrícula</option><option value="titulo">Livro</option><option value="exemplar">Exemplar</option></select><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para pesquisar" aria-label="Pesquisar empréstimos" /><button type="submit">Pesquisar</button></form><select className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar empréstimos"><option value="ativo">Ativos</option><option value="atrasado">Atrasados</option><option value="devolvido">Devolvidos</option><option value="cancelado">Cancelados</option><option value="todos">Todos</option></select><button className="icon-button" onClick={() => { loadLoans(); loadReferences() }} title="Atualizar empréstimos" aria-label="Atualizar empréstimos"><RefreshCw size={16} /></button></div>
-      {feedback && <div className="feedback success" role="status"><Check size={15} /> {feedback}<button onClick={() => setFeedback('')} aria-label="Fechar mensagem"><X size={14} /></button></div>}
-      {error && <div className="feedback error" role="alert">{error}</div>}
-      <div className="table-frame">{loading ? <div className="table-state">Carregando empréstimos...</div> : !visibleLoans.length ? <div className="table-state empty-state"><ArrowLeftRight size={24} /><strong>{statusFilter === 'ativo' ? 'Nenhum empréstimo ativo no momento.' : 'Nenhum empréstimo encontrado.'}</strong><span>{query ? 'Ajuste a pesquisa e tente novamente.' : 'Os registros aparecerão nesta área.'}</span></div> : <table><thead><tr><th>Nome do aluno</th><th>Série</th><th>Código do livro</th><th>Nome do livro</th><th>Autor</th><th>Entrega</th><th>Devolução</th><th>Situação</th><th className="actions-column">Ações</th></tr></thead><tbody>{visibleLoans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{loan.serie_aluno || loan.aluno?.serie_ano || '—'}</td><td>{loan.codigo_livro || loan.exemplar_codigo || '—'}</td><td>{loan.nome_livro || loan.livro_titulo || '—'}</td><td>{loan.autor_livro || '—'}</td><td>{dateOnly(loan.data_entrega || loan.data_emprestimo)}</td><td>{dateOnly(loan.data_prevista_devolucao)}</td><td><span className={`loan-badge ${statusClass(loan.situacao)}`}>{statusNames[loan.situacao] || loan.situacao}</span></td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar" aria-label={`Visualizar empréstimo de ${loan.aluno_nome}`}><Eye size={16} /></button>{loan.exemplar_id && (loan.situacao === 'ativo' || loan.situacao === 'atrasado') && <button className="table-action return-action" onClick={() => setReturnLoan(loan)} title="Registrar devolução" aria-label={`Registrar devolução de ${loan.livro_titulo}`}><Check size={16} /></button>}</td></tr>)}</tbody></table>}</div>
-      <section className="loan-history">
-        <button className="history-toggle" onClick={() => { const nextOpen = !historyOpen; setHistoryOpen(nextOpen); if (nextOpen && !returnedLoans.length) loadHistory() }} aria-expanded={historyOpen}>
-          <span><strong>Histórico de devoluções</strong><small>Empréstimos já encerrados, separados dos ativos</small></span><span>{historyOpen ? 'Ocultar' : 'Mostrar'}</span>
-        </button>
-        {historyOpen && <div className="table-frame">{historyLoading ? <div className="table-state">Carregando histórico...</div> : !returnedLoans.length ? <div className="table-state">Nenhuma devolução registrada.</div> : <table><thead><tr><th>Aluno</th><th>Livro</th><th>Exemplar</th><th>Emprestado em</th><th>Devolvido em</th><th>Ações</th></tr></thead><tbody>{returnedLoans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{loan.livro_titulo}</td><td>{loan.exemplar_codigo}</td><td>{dateOnly(loan.data_emprestimo)}</td><td>{dateOnly(loan.data_devolucao)}</td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar devolução" aria-label={`Visualizar devolução de ${loan.livro_titulo}`}><Eye size={16} /></button></td></tr>)}</tbody></table>}</div>}
-      </section>
-      {loanOpen && <div className="modal-backdrop"><div className="modal-panel loan-form-panel" role="dialog" aria-modal="true" aria-labelledby="loan-form-title"><div className="modal-header"><div><p className="eyebrow">Circulação</p><h2 id="loan-form-title">Novo empréstimo</h2></div><button className="modal-close" onClick={() => setLoanOpen(false)} aria-label="Fechar formulário"><X size={19} /></button></div><form className="student-form" onSubmit={createLoan}><div className="loan-step"><h3>1. Selecione o aluno</h3><label>Aluno <span className="required">*</span><select name="aluno_id" value={loanForm.aluno_id} onChange={updateLoanField} required><option value="">Escolha um aluno</option>{students.filter((student) => student.ativo).map((student) => <option key={student.id} value={student.id}>{student.nome_completo} · {student.matricula}</option>)}</select></label>{selectedStudent && <div className="selection-summary"><strong>{selectedStudent.nome_completo}</strong><span>{selectedStudent.matricula} · Turma {selectedStudent.turma} · {selectedStudent.ativo ? 'Ativo' : 'Inativo'}</span></div>}</div><div className="loan-step"><h3>2. Selecione o exemplar disponível</h3><label>Pesquisar exemplar ou livro<input name="copySearch" value={loanForm.copySearch || ''} onChange={updateLoanField} placeholder="Código, título ou autor" /></label><label>Exemplar <span className="required">*</span><select name="exemplar_id" value={loanForm.exemplar_id} onChange={updateLoanField} required><option value="">Escolha um exemplar</option>{filteredCopies.map((copy) => <option key={copy.id} value={copy.id}>{copy.codigo} · {bookById(copy.livro_id)?.titulo || 'Livro não carregado'}</option>)}</select></label>{loanForm.exemplar_id && <div className="selection-summary"><strong>{bookById(copyById(Number(loanForm.exemplar_id))?.livro_id)?.titulo}</strong><span>{copyById(Number(loanForm.exemplar_id))?.codigo} · Disponível</span></div>}</div><div className="loan-step"><h3>3. Prazo</h3><label>Data prevista de devolução <span className="required">*</span><input type="date" name="data_prevista_devolucao" value={loanForm.data_prevista_devolucao} onChange={updateLoanField} required /></label><label>Observações<textarea name="observacoes" value={loanForm.observacoes} onChange={updateLoanField} rows="2" /></label></div><p className="required-note">A data prevista é informada pela biblioteca. O backend valida o prazo.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setLoanOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={saving || referencesLoading}>{saving ? 'Registrando...' : 'Confirmar empréstimo'}</button></div></form></div></div>}
-      {returnLoan && <div className="modal-backdrop"><div className="modal-panel confirmation-panel" role="dialog" aria-modal="true" aria-labelledby="return-title"><div className="modal-header"><div><p className="eyebrow">Devolução</p><h2 id="return-title">Confirmar devolução</h2></div><button className="modal-close" onClick={() => setReturnLoan(null)} aria-label="Fechar confirmação"><X size={19} /></button></div><div className="confirmation-copy"><p>Confirme a devolução deste exemplar:</p><strong>{returnLoan.livro_titulo}</strong><span>{returnLoan.exemplar_codigo} · {returnLoan.aluno_nome}</span><span>Data prevista: {dateOnly(returnLoan.data_prevista_devolucao)}</span></div><div className="modal-actions"><button className="secondary-button" onClick={() => setReturnLoan(null)}>Cancelar</button><button className="primary-button" onClick={registerReturn} disabled={returning}>{returning ? 'Registrando...' : 'Registrar devolução'}</button></div></div></div>}
-      {details && <div className="modal-backdrop"><div className="modal-panel details-panel" role="dialog" aria-modal="true" aria-labelledby="loan-details-title"><div className="modal-header"><div><p className="eyebrow">Registro de circulação</p><h2 id="loan-details-title">{details.livro_titulo}</h2></div><button className="modal-close" onClick={() => setDetails(null)} aria-label="Fechar detalhes"><X size={19} /></button></div><dl className="details-grid"><div><dt>Aluno</dt><dd>{details.aluno_nome}</dd></div><div><dt>Exemplar</dt><dd>{details.exemplar_codigo}</dd></div><div><dt>Data do empréstimo</dt><dd>{dateTime(details.data_emprestimo)}</dd></div><div><dt>Devolução prevista</dt><dd>{dateTime(details.data_prevista_devolucao)}</dd></div><div><dt>Devolução realizada</dt><dd>{dateTime(details.data_devolucao)}</dd></div><div><dt>Situação</dt><dd>{statusNames[details.situacao] || details.situacao}</dd></div><div><dt>Operador do empréstimo</dt><dd>{details.realizado_por_nome || 'Não informado'}</dd></div><div><dt>Operador da devolução</dt><dd>{details.devolvido_por_nome || 'Não informado'}</dd></div></dl><div className="modal-actions"><button className="secondary-button" onClick={() => setDetails(null)}>Fechar</button></div></div></div>}
-    </section>
-  )
+  return <section className="module-page students-page loans-page">
+    <div className="module-toolbar"><div><p className="eyebrow">Circulação</p><h1>Empréstimos</h1><p className="page-description">Registro e acompanhamento da circulação de exemplares.</p></div><button className="primary-button" onClick={() => { setLoanForm({ ...emptyLoan }); setLoanOpen(true); setError('') }}><Plus size={16} /> Novo empréstimo</button></div>
+    <div className="books-filters loan-filters"><form className="search-form" onSubmit={(event) => { event.preventDefault(); loadLoans() }}><Search size={17} /><select value={queryField} onChange={(event) => setQueryField(event.target.value)} aria-label="Campo da pesquisa"><option value="aluno">Aluno</option><option value="matricula">Matrícula</option><option value="titulo">Livro</option><option value="exemplar">Exemplar</option></select><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para pesquisar" aria-label="Pesquisar empréstimos" /><button type="submit">Pesquisar</button></form><select className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar empréstimos"><option value="ativo">Ativos</option><option value="atrasado">Atrasados</option><option value="devolvido">Devolvidos</option><option value="cancelado">Cancelados</option><option value="todos">Todos</option></select><button className="icon-button" onClick={loadLoans} title="Atualizar empréstimos" aria-label="Atualizar empréstimos"><RefreshCw size={16} /></button></div>
+    {feedback && <div className="feedback success" role="status"><Check size={15} /> {feedback}<button onClick={() => setFeedback('')} aria-label="Fechar mensagem"><X size={14} /></button></div>}
+    {error && <div className="feedback error" role="alert">{error}</div>}
+    <div className="table-frame">{loading ? <div className="table-state">Carregando empréstimos...</div> : !loans.length ? <div className="table-state empty-state"><ArrowLeftRight size={24} /><strong>Nenhum empréstimo encontrado.</strong></div> : <table><thead><tr><th>Nome do aluno</th><th>Série</th><th>Código do livro</th><th>Nome do livro</th><th>Autor</th><th>Entrega</th><th>Devolução</th><th>Situação</th><th>Ações</th></tr></thead><tbody>{loans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{loan.serie_aluno || '—'}</td><td>{loan.codigo_livro || loan.exemplar_codigo || '—'}</td><td>{loan.nome_livro || loan.livro_titulo || '—'}</td><td>{loan.autor_livro || '—'}</td><td>{dateOnly(loan.data_entrega || loan.data_emprestimo)}</td><td>{dateOnly(loan.data_prevista_devolucao)}</td><td><span className={`loan-badge ${loan.situacao === 'atrasado' ? 'overdue' : loan.situacao}`}>{statusNames[loan.situacao] || loan.situacao}</span></td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar" aria-label="Visualizar empréstimo"><Eye size={16} /></button>{loan.exemplar_id && (loan.situacao === 'ativo' || loan.situacao === 'atrasado') && <button className="table-action return-action" onClick={() => setReturnLoan(loan)} title="Registrar devolução" aria-label="Registrar devolução"><Check size={16} /></button>}</td></tr>)}</tbody></table>}</div>
+    {loanOpen && <div className="modal-backdrop"><div className="modal-panel loan-form-panel" role="dialog" aria-modal="true" aria-labelledby="loan-form-title"><div className="modal-header"><div><p className="eyebrow">Circulação</p><h2 id="loan-form-title">Novo empréstimo</h2></div><button className="modal-close" onClick={() => setLoanOpen(false)} aria-label="Fechar formulário"><X size={19} /></button></div><form className="student-form" onSubmit={createLoan}><div className="loan-step"><h3>Dados do empréstimo</h3><div className="manual-loan-grid"><label>Nome do aluno <span className="required">*</span><input type="text" name="nome_aluno" value={loanForm.nome_aluno} onChange={updateLoanField} required /></label><label>Série <span className="required">*</span><input type="text" name="serie_aluno" value={loanForm.serie_aluno} onChange={updateLoanField} required /></label><label>Código do livro <span className="required">*</span><input type="text" name="codigo_livro" value={loanForm.codigo_livro} onChange={updateLoanField} required /></label><label>Nome do livro <span className="required">*</span><input type="text" name="nome_livro" value={loanForm.nome_livro} onChange={updateLoanField} required /></label><label>Autor <span className="required">*</span><input type="text" name="autor_livro" value={loanForm.autor_livro} onChange={updateLoanField} required /></label><label>Data de entrega <span className="required">*</span><input type="date" name="data_entrega" value={loanForm.data_entrega} onChange={updateLoanField} required /></label><label>Data de devolução <span className="required">*</span><input type="date" name="data_prevista_devolucao" value={loanForm.data_prevista_devolucao} onChange={updateLoanField} required /></label><label className="full-width">Observações<textarea name="observacoes" value={loanForm.observacoes} onChange={updateLoanField} rows="3" /></label></div></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setLoanOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar empréstimo'}</button></div></form></div></div>}
+    {returnLoan && <div className="modal-backdrop"><div className="modal-panel confirmation-panel" role="dialog" aria-modal="true"><div className="modal-header"><h2>Confirmar devolução</h2><button className="modal-close" onClick={() => setReturnLoan(null)} aria-label="Fechar confirmação"><X size={19} /></button></div><div className="confirmation-copy"><strong>{returnLoan.livro_titulo}</strong><span>{returnLoan.exemplar_codigo} · {returnLoan.aluno_nome}</span></div><div className="modal-actions"><button className="secondary-button" onClick={() => setReturnLoan(null)}>Cancelar</button><button className="primary-button" onClick={registerReturn} disabled={returning}>{returning ? 'Registrando...' : 'Registrar devolução'}</button></div></div></div>}
+    {details && <div className="modal-backdrop"><div className="modal-panel details-panel" role="dialog" aria-modal="true"><div className="modal-header"><h2>{details.livro_titulo}</h2><button className="modal-close" onClick={() => setDetails(null)} aria-label="Fechar detalhes"><X size={19} /></button></div><dl className="details-grid"><div><dt>Aluno</dt><dd>{details.aluno_nome}</dd></div><div><dt>Série</dt><dd>{details.serie_aluno || '—'}</dd></div><div><dt>Código do livro</dt><dd>{details.codigo_livro || details.exemplar_codigo || '—'}</dd></div><div><dt>Autor</dt><dd>{details.autor_livro || '—'}</dd></div><div><dt>Data de entrega</dt><dd>{dateOnly(details.data_entrega || details.data_emprestimo)}</dd></div><div><dt>Data de devolução</dt><dd>{dateOnly(details.data_prevista_devolucao)}</dd></div></dl><div className="modal-actions"><button className="secondary-button" onClick={() => setDetails(null)}>Fechar</button></div></div></div>}
+  </section>
 }
