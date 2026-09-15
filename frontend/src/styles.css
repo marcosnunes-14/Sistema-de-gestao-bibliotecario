@@ -68,6 +68,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .home-shell .page-area { height: calc(100vh - 96px); padding-top: 12px; padding-bottom: 20px; overflow: hidden; }
 .home-page { display: grid; min-height: 100%; place-items: center; }
 .home-branding { display: grid; justify-items: center; width: 100%; }
+.app-version { position: absolute; right: 22px; bottom: 16px; margin: 0; color: #153d63; font-size: 11px; }
+.app-version strong { font-weight: 600; }
+.app-version span { color: rgba(21, 61, 99, .55); }
 .home-logo { display: block; width: min(480px, 74vw); height: auto; max-height: 450px; object-fit: contain; }
 .home-support { margin: 4px 0 3px; color: #173a2e; font-size: 15px; font-weight: 500; text-align: center; }
 .home-company { display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin: 0; color: #72827b; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-align: center; }
@@ -180,6 +183,7 @@ th { height: 39px; background: #f5f8f6; color: #65746d; font-size: 11px; font-we
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: #fafcfb; }
 .student-name { color: #28483b; font-weight: 600; }
+.clickable-row { cursor: pointer; }
 .cell-subtitle { display: block; margin-top: 3px; color: #89958f; font-size: 11px; font-weight: 400; }
 .actions-column { width: 124px; text-align: center; }
 .row-actions { display: flex; justify-content: center; gap: 5px; }
@@ -216,6 +220,12 @@ tbody tr:hover { background: #fafcfb; }
 .loan-badge.devolvido { border-color: #dfe5e2; background: #f5f7f6; color: #718078; }
 .loan-badge.cancelado { border-color: #ead1cc; background: #fcf2f0; color: #9a5b51; }
 .return-action { color: #4d7660; }
+.loan-history { margin-top: 26px; }
+.history-toggle { display: flex; align-items: center; justify-content: space-between; gap: 18px; width: 100%; padding: 13px 15px; border: 1px solid #d4e0eb; background: #fff; color: #245d88; text-align: left; }
+.history-toggle span:first-child { display: grid; gap: 3px; }
+.history-toggle strong { color: #153d63; font-size: 13px; }
+.history-toggle small { color: #7b8d99; font-size: 11px; }
+.history-toggle > span:last-child { font-size: 11px; font-weight: 600; }
 .loan-form-panel { width: min(700px, 100%); }
 .loan-step { display: grid; gap: 12px; padding: 17px 0; border-bottom: 1px solid #e1e8e4; }
 .loan-step:first-child { padding-top: 0; }
@@ -242,7 +252,7 @@ tbody tr:hover { background: #fafcfb; }
 .empty-state strong { color: #42554b; font-size: 14px; font-weight: 600; }
 .empty-state span { color: #929d98; }
 .empty-state .primary-button { margin-top: 9px; }
-.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 22px; background: rgba(27, 43, 36, .28); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; overflow-y: auto; padding: 22px; background: rgba(27, 43, 36, .28); }
 .modal-panel { width: min(650px, 100%); max-height: calc(100vh - 44px); overflow-y: auto; border: 1px solid #d6e0da; background: #fff; box-shadow: 0 12px 30px rgba(30, 53, 43, .14); }
 .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px 26px 19px; border-bottom: 1px solid #e1e8e4; }
 .modal-header h2 { color: #1d3d30; font-size: 21px; font-weight: 500; }
@@ -331,6 +341,7 @@ tbody tr:hover { background: #fafcfb; }
 .shelf-open { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 31px; border: 1px solid #cbd6d0; background: #fff; color: #53635b; font-size: 12px; }
 .shelf-open:hover { border-color: #88a993; color: #1f4d3b; background: #f2f6f3; }
 .shelf-details-panel { width: min(760px, 100%); }
+.shelf-details-panel .table-frame { max-height: min(48vh, 420px); overflow: auto; }
 .shelf-book-groups { display: grid; gap: 18px; }
 .shelf-book-group { border: 1px solid #d9e1dd; background: #fff; }
 .shelf-book-group h2 { padding: 14px 16px; border-bottom: 1px solid #d9e1dd; background: #f5f8f6; }

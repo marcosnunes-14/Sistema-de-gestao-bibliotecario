@@ -14,6 +14,7 @@ function apiMessage(error, fallback) { return error?.message || fallback }
 
 export function Emprestimos() {
   const [loans, setLoans] = useState([])
+  const [returnedLoans, setReturnedLoans] = useState([])
   const [students, setStudents] = useState([])
   const [studentResults, setStudentResults] = useState([])
   const [books, setBooks] = useState([])
@@ -33,6 +34,8 @@ export function Emprestimos() {
   const [returning, setReturning] = useState(false)
   const [studentSearch, setStudentSearch] = useState('')
   const [studentSearchLoading, setStudentSearchLoading] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const bookById = (id) => books.find((book) => book.id === id)
   const copyById = (id) => copies.find((copy) => copy.id === id)
@@ -71,6 +74,15 @@ export function Emprestimos() {
       setLoans(await apiRequest(`/api/emprestimos?${params}`))
     } catch (requestError) { setError(apiMessage(requestError, 'Não foi possível carregar os empréstimos.')) }
     finally { setLoading(false) }
+  }
+
+  async function loadHistory() {
+    setHistoryLoading(true)
+    try {
+      setReturnedLoans(await apiRequest('/api/emprestimos/devolvidos?page=1&page_size=100'))
+    } catch (requestError) {
+      setError(apiMessage(requestError, 'Não foi possível carregar o histórico de devoluções.'))
+    } finally { setHistoryLoading(false) }
   }
 
   useEffect(() => {
@@ -129,7 +141,7 @@ export function Emprestimos() {
     try {
       await apiRequest(`/api/emprestimos/${returnLoan.id}/devolucao`, { method: 'POST', body: JSON.stringify({}) })
       setReturnLoan(null); setFeedback('Devolução registrada com sucesso.')
-      await Promise.all([loadLoans(), loadReferences()])
+      await Promise.all([loadLoans(), loadReferences(), historyOpen ? loadHistory() : Promise.resolve()])
     } catch (requestError) { setError(apiMessage(requestError, 'Não foi possível registrar a devolução.')) }
     finally { setReturning(false) }
   }
@@ -142,6 +154,12 @@ export function Emprestimos() {
       {feedback && <div className="feedback success" role="status"><Check size={15} /> {feedback}<button onClick={() => setFeedback('')} aria-label="Fechar mensagem"><X size={14} /></button></div>}
       {error && <div className="feedback error" role="alert">{error}</div>}
       <div className="table-frame">{loading ? <div className="table-state">Carregando empréstimos...</div> : !visibleLoans.length ? <div className="table-state empty-state"><ArrowLeftRight size={24} /><strong>{statusFilter === 'ativo' ? 'Nenhum empréstimo ativo no momento.' : 'Nenhum empréstimo encontrado.'}</strong><span>{query ? 'Ajuste a pesquisa e tente novamente.' : 'Os registros aparecerão nesta área.'}</span></div> : <table><thead><tr><th>Aluno</th><th>Matrícula</th><th>Livro</th><th>Exemplar</th><th>Emprestado em</th><th>Previsto</th><th>Situação</th><th className="actions-column">Ações</th></tr></thead><tbody>{visibleLoans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{students.find((student) => student.id === loan.aluno_id)?.matricula || '—'}</td><td>{loan.livro_titulo}</td><td>{loan.exemplar_codigo}</td><td>{dateOnly(loan.data_emprestimo)}</td><td>{dateOnly(loan.data_prevista_devolucao)}</td><td><span className={`loan-badge ${statusClass(loan.situacao)}`}>{statusNames[loan.situacao] || loan.situacao}</span></td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar" aria-label={`Visualizar empréstimo de ${loan.aluno_nome}`}><Eye size={16} /></button>{(loan.situacao === 'ativo' || loan.situacao === 'atrasado') && <button className="table-action return-action" onClick={() => setReturnLoan(loan)} title="Registrar devolução" aria-label={`Registrar devolução de ${loan.livro_titulo}`}><Check size={16} /></button>}</td></tr>)}</tbody></table>}</div>
+      <section className="loan-history">
+        <button className="history-toggle" onClick={() => { const nextOpen = !historyOpen; setHistoryOpen(nextOpen); if (nextOpen && !returnedLoans.length) loadHistory() }} aria-expanded={historyOpen}>
+          <span><strong>Histórico de devoluções</strong><small>Empréstimos já encerrados, separados dos ativos</small></span><span>{historyOpen ? 'Ocultar' : 'Mostrar'}</span>
+        </button>
+        {historyOpen && <div className="table-frame">{historyLoading ? <div className="table-state">Carregando histórico...</div> : !returnedLoans.length ? <div className="table-state">Nenhuma devolução registrada.</div> : <table><thead><tr><th>Aluno</th><th>Livro</th><th>Exemplar</th><th>Emprestado em</th><th>Devolvido em</th><th>Ações</th></tr></thead><tbody>{returnedLoans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{loan.livro_titulo}</td><td>{loan.exemplar_codigo}</td><td>{dateOnly(loan.data_emprestimo)}</td><td>{dateOnly(loan.data_devolucao)}</td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar devolução" aria-label={`Visualizar devolução de ${loan.livro_titulo}`}><Eye size={16} /></button></td></tr>)}</tbody></table>}</div>}
+      </section>
       {loanOpen && <div className="modal-backdrop"><div className="modal-panel loan-form-panel" role="dialog" aria-modal="true" aria-labelledby="loan-form-title"><div className="modal-header"><div><p className="eyebrow">Circulação</p><h2 id="loan-form-title">Novo empréstimo</h2></div><button className="modal-close" onClick={() => setLoanOpen(false)} aria-label="Fechar formulário"><X size={19} /></button></div><form className="student-form" onSubmit={createLoan}><div className="loan-step"><h3>1. Selecione o aluno</h3><label>Aluno <span className="required">*</span><select name="aluno_id" value={loanForm.aluno_id} onChange={updateLoanField} required><option value="">Escolha um aluno</option>{students.filter((student) => student.ativo).map((student) => <option key={student.id} value={student.id}>{student.nome_completo} · {student.matricula}</option>)}</select></label>{selectedStudent && <div className="selection-summary"><strong>{selectedStudent.nome_completo}</strong><span>{selectedStudent.matricula} · Turma {selectedStudent.turma} · {selectedStudent.ativo ? 'Ativo' : 'Inativo'}</span></div>}</div><div className="loan-step"><h3>2. Selecione o exemplar disponível</h3><label>Pesquisar exemplar ou livro<input name="copySearch" value={loanForm.copySearch || ''} onChange={updateLoanField} placeholder="Código, título ou autor" /></label><label>Exemplar <span className="required">*</span><select name="exemplar_id" value={loanForm.exemplar_id} onChange={updateLoanField} required><option value="">Escolha um exemplar</option>{filteredCopies.map((copy) => <option key={copy.id} value={copy.id}>{copy.codigo} · {bookById(copy.livro_id)?.titulo || 'Livro não carregado'}</option>)}</select></label>{loanForm.exemplar_id && <div className="selection-summary"><strong>{bookById(copyById(Number(loanForm.exemplar_id))?.livro_id)?.titulo}</strong><span>{copyById(Number(loanForm.exemplar_id))?.codigo} · Disponível</span></div>}</div><div className="loan-step"><h3>3. Prazo</h3><label>Data prevista de devolução <span className="required">*</span><input type="date" name="data_prevista_devolucao" value={loanForm.data_prevista_devolucao} onChange={updateLoanField} required /></label><label>Observações<textarea name="observacoes" value={loanForm.observacoes} onChange={updateLoanField} rows="2" /></label></div><p className="required-note">A data prevista é informada pela biblioteca. O backend valida o prazo.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setLoanOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={saving || referencesLoading}>{saving ? 'Registrando...' : 'Confirmar empréstimo'}</button></div></form></div></div>}
       {returnLoan && <div className="modal-backdrop"><div className="modal-panel confirmation-panel" role="dialog" aria-modal="true" aria-labelledby="return-title"><div className="modal-header"><div><p className="eyebrow">Devolução</p><h2 id="return-title">Confirmar devolução</h2></div><button className="modal-close" onClick={() => setReturnLoan(null)} aria-label="Fechar confirmação"><X size={19} /></button></div><div className="confirmation-copy"><p>Confirme a devolução deste exemplar:</p><strong>{returnLoan.livro_titulo}</strong><span>{returnLoan.exemplar_codigo} · {returnLoan.aluno_nome}</span><span>Data prevista: {dateOnly(returnLoan.data_prevista_devolucao)}</span></div><div className="modal-actions"><button className="secondary-button" onClick={() => setReturnLoan(null)}>Cancelar</button><button className="primary-button" onClick={registerReturn} disabled={returning}>{returning ? 'Registrando...' : 'Registrar devolução'}</button></div></div></div>}
       {details && <div className="modal-backdrop"><div className="modal-panel details-panel" role="dialog" aria-modal="true" aria-labelledby="loan-details-title"><div className="modal-header"><div><p className="eyebrow">Registro de circulação</p><h2 id="loan-details-title">{details.livro_titulo}</h2></div><button className="modal-close" onClick={() => setDetails(null)} aria-label="Fechar detalhes"><X size={19} /></button></div><dl className="details-grid"><div><dt>Aluno</dt><dd>{details.aluno_nome}</dd></div><div><dt>Exemplar</dt><dd>{details.exemplar_codigo}</dd></div><div><dt>Data do empréstimo</dt><dd>{dateTime(details.data_emprestimo)}</dd></div><div><dt>Devolução prevista</dt><dd>{dateTime(details.data_prevista_devolucao)}</dd></div><div><dt>Devolução realizada</dt><dd>{dateTime(details.data_devolucao)}</dd></div><div><dt>Situação</dt><dd>{statusNames[details.situacao] || details.situacao}</dd></div><div><dt>Operador do empréstimo</dt><dd>{details.realizado_por_nome || 'Não informado'}</dd></div><div><dt>Operador da devolução</dt><dd>{details.devolvido_por_nome || 'Não informado'}</dd></div></dl><div className="modal-actions"><button className="secondary-button" onClick={() => setDetails(null)}>Fechar</button></div></div></div>}

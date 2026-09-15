@@ -10,11 +10,6 @@ class LoginRequest(BaseModel):
     senha: str = Field(min_length=8)
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
 class UsuarioCreate(BaseModel):
     nome: str = Field(min_length=1, max_length=200)
     username: str = Field(min_length=3, max_length=80)
@@ -86,3 +81,9 @@ class UsuarioRead(BaseModel):
     data_criacao: datetime
     data_atualizacao: datetime
     ultimo_login: datetime | None
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UsuarioRead

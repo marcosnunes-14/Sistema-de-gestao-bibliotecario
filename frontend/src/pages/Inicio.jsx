@@ -8,6 +8,7 @@ export function Inicio() {
         <p className="home-support">Manutenção e Suporte: (86) 99457-7046</p>
         <p className="home-company"><img className="home-company-logo" src="/DS%20SYSTEM.png" alt="DS System" /> <span>| SISTEMAS &amp; TECNOLOGIA</span></p>
       </div>
+      <p className="app-version"><strong>Versão:</strong> <span>1.0.0</span></p>
     </section>
   )
 }

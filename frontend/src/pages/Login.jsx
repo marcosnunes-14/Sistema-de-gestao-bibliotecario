@@ -51,7 +51,7 @@ export function Login({ onLogin, notice }) {
         skipAuthRedirect: true,
       })
       sessionStorage.setItem('biblioteca_access_token', tokenResponse.access_token)
-      const user = await apiRequest('/api/auth/me')
+      const user = tokenResponse.user || await apiRequest('/api/auth/me')
       storeSessionUser(user)
       rememberUser(user)
       onLogin(user)

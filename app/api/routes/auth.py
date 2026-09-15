@@ -22,7 +22,7 @@ def login(data: LoginRequest, db: DbSession) -> TokenResponse:
             status_code=503,
             detail="A autenticação ainda não foi configurada no ambiente.",
         ) from error
-    return TokenResponse(access_token=token)
+    return TokenResponse(access_token=token, user=usuario)
 
 
 @router.get("/me", response_model=UsuarioRead)
