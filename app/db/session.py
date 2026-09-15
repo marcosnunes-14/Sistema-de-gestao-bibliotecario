@@ -63,6 +63,22 @@ def _upgrade_existing_schema() -> None:
             connection.execute(text("ALTER TABLE emprestimos ADD COLUMN realizado_por_id INTEGER"))
         if "devolvido_por_id" not in loan_columns:
             connection.execute(text("ALTER TABLE emprestimos ADD COLUMN devolvido_por_id INTEGER"))
+        if "nome_aluno" not in loan_columns:
+            connection.execute(text("ALTER TABLE emprestimos ADD COLUMN nome_aluno VARCHAR(200)"))
+        if "serie_aluno" not in loan_columns:
+            connection.execute(text("ALTER TABLE emprestimos ADD COLUMN serie_aluno VARCHAR(50)"))
+        if "codigo_livro" not in loan_columns:
+            connection.execute(text("ALTER TABLE emprestimos ADD COLUMN codigo_livro VARCHAR(50)"))
+        if "nome_livro" not in loan_columns:
+            connection.execute(text("ALTER TABLE emprestimos ADD COLUMN nome_livro VARCHAR(300)"))
+        if "autor_livro" not in loan_columns:
+            connection.execute(text("ALTER TABLE emprestimos ADD COLUMN autor_livro VARCHAR(200)"))
+        if "data_entrega" not in loan_columns:
+            connection.execute(text("ALTER TABLE emprestimos ADD COLUMN data_entrega DATETIME"))
+        if "aluno_id" in loan_columns:
+            connection.execute(text("UPDATE emprestimos SET aluno_id = NULL WHERE aluno_id = 0"))
+        if "exemplar_id" in loan_columns:
+            connection.execute(text("UPDATE emprestimos SET exemplar_id = NULL WHERE exemplar_id = 0"))
         if "prateleira_id" in exemplar_columns:
             shelf_id = connection.execute(
                 text("SELECT id FROM prateleiras WHERE numero = 1")

@@ -72,7 +72,7 @@ function Shell({ user, onLogout }) {
           <section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(event) => event.stopPropagation()}>
             <button className="modal-close" onClick={() => setHelpOpen(false)} aria-label="Fechar explicação"><X size={18} /></button>
             <img className="help-logo" src="/SGB.png" alt="SGB" />
-            <h2 id="help-title">• SGB -  TESTANDO</h2>
+            <h2 id="help-title">• SGB - Sistema de Gestão Bibliotecária •</h2>
             <p className="help-lead">O SGB foi inicialmente projetado como um trabalho escolar. No entanto, o desejo de desenvolver algo 100% funcional, capaz de contribuir de verdade para a nossa instituição, falou mais alto. Assim, o projeto evoluiu para um sistema desenvolvido para facilitar e modernizar o gerenciamento da biblioteca.</p>
             <p>O SGB reúne em um só lugar o controle de livros, alunos, empréstimos, devoluções e estoque, tornando as tarefas do dia a dia mais rápidas e organizadas.</p>
             <div className="help-section">

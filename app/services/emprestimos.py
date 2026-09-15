@@ -113,34 +113,63 @@ def _loan_query():
 
 
 def create_emprestimo(db: Session, data: EmprestimoCreate, usuario: Usuario | None = None) -> Emprestimo:
-    aluno = get_aluno_or_404(db, data.aluno_id)
-    if not aluno.ativo:
-        raise conflict("Aluno inativo não pode realizar empréstimos.")
-    exemplar = get_exemplar_or_404(db, data.exemplar_id)
-    if exemplar.situacao != SituacaoExemplar.DISPONIVEL:
-        raise conflict("O exemplar não está disponível para empréstimo.")
-    active_loan = db.scalar(
-        select(Emprestimo).where(
-            Emprestimo.exemplar_id == exemplar.id,
-            Emprestimo.situacao_base == SituacaoEmprestimo.ATIVO,
+    if data.aluno_id is not None and data.exemplar_id is not None:
+        aluno = get_aluno_or_404(db, data.aluno_id)
+        if not aluno.ativo:
+            raise conflict("Aluno inativo não pode realizar empréstimos.")
+        exemplar = get_exemplar_or_404(db, data.exemplar_id)
+        if exemplar.situacao != SituacaoExemplar.DISPONIVEL:
+            raise conflict("O exemplar não está disponível para empréstimo.")
+        active_loan = db.scalar(
+            select(Emprestimo).where(
+                Emprestimo.exemplar_id == exemplar.id,
+                Emprestimo.situacao_base == SituacaoEmprestimo.ATIVO,
+            )
         )
-    )
-    if active_loan is not None:
-        raise conflict("O exemplar já está emprestado.")
-    emprestimo = Emprestimo(
-        **data.model_dump(),
-        realizado_por_id=usuario.id if usuario else None,
-    )
-    exemplar.situacao = SituacaoExemplar.EMPRESTADO
-    db.add(emprestimo)
-    registrar(db, "criar", "emprestimo", None, usuario, {"exemplar_id": exemplar.id, "aluno_id": aluno.id})
-    try:
-        db.commit()
-    except IntegrityError as error:
-        db.rollback()
-        raise conflict("O exemplar já possui um empréstimo ativo.") from error
-    db.refresh(emprestimo)
-    return db.scalar(_loan_query().where(Emprestimo.id == emprestimo.id))
+        if active_loan is not None:
+            raise conflict("O exemplar já está emprestado.")
+        emprestimo = Emprestimo(
+            **data.model_dump(exclude={"data_entrega"}),
+            realizado_por_id=usuario.id if usuario else None,
+        )
+        exemplar.situacao = SituacaoExemplar.EMPRESTADO
+        db.add(emprestimo)
+        registrar(db, "criar", "emprestimo", None, usuario, {"exemplar_id": exemplar.id, "aluno_id": aluno.id})
+        try:
+            db.commit()
+        except IntegrityError as error:
+            db.rollback()
+            raise conflict("O exemplar já possui um empréstimo ativo.") from error
+        db.refresh(emprestimo)
+        return db.scalar(_loan_query().where(Emprestimo.id == emprestimo.id))
+
+    if data.aluno_id is None and data.exemplar_id is None:
+        payload = data.model_dump(exclude={"data_entrega"})
+        payload["data_emprestimo"] = data.data_entrega or data.data_emprestimo
+        payload["nome_aluno"] = data.nome_aluno.strip()
+        payload["serie_aluno"] = data.serie_aluno.strip()
+        payload["codigo_livro"] = data.codigo_livro.strip()
+        payload["nome_livro"] = data.nome_livro.strip()
+        payload["autor_livro"] = data.autor_livro.strip()
+        payload["aluno_id"] = None
+        payload["exemplar_id"] = None
+        payload["data_entrega"] = data.data_entrega or data.data_emprestimo
+        emprestimo = Emprestimo(**payload, realizado_por_id=usuario.id if usuario else None)
+        db.add(emprestimo)
+        registrar(db, "criar", "emprestimo", None, usuario, {
+            "nome_aluno": emprestimo.nome_aluno,
+            "nome_livro": emprestimo.nome_livro,
+            "codigo_livro": emprestimo.codigo_livro,
+        })
+        try:
+            db.commit()
+        except IntegrityError as error:
+            db.rollback()
+            raise conflict("Não foi possível salvar o empréstimo manual.") from error
+        db.refresh(emprestimo)
+        return db.scalar(_loan_query().where(Emprestimo.id == emprestimo.id))
+
+    raise HTTPException(status_code=422, detail="Informe aluno_id e exemplar_id juntos ou deixe ambos em branco para o cadastro manual.")
 
 
 def list_emprestimos(
@@ -153,7 +182,7 @@ def list_emprestimos(
     page: int = 1,
     page_size: int = 50,
 ) -> list[Emprestimo]:
-    query = _loan_query().join(Emprestimo.aluno).join(Emprestimo.exemplar).join(Exemplar.livro)
+    query = _loan_query().outerjoin(Emprestimo.aluno).outerjoin(Emprestimo.exemplar).outerjoin(Exemplar.livro)
     filters = []
     now = datetime.now()
     if situacao == "ativo":
@@ -169,13 +198,13 @@ def list_emprestimos(
     elif situacao:
         raise HTTPException(status_code=422, detail="Situação de empréstimo inválida.")
     if aluno:
-        filters.append(Aluno.nome_completo.ilike(f"%{aluno.strip()}%"))
+        filters.append(or_(Aluno.nome_completo.ilike(f"%{aluno.strip()}%"), Emprestimo.nome_aluno.ilike(f"%{aluno.strip()}%")))
     if matricula:
-        filters.append(Aluno.matricula.ilike(f"%{matricula.strip()}%"))
+        filters.append(or_(Aluno.matricula.ilike(f"%{matricula.strip()}%"), Emprestimo.serie_aluno.ilike(f"%{matricula.strip()}%")))
     if exemplar:
-        filters.append(Exemplar.codigo.ilike(f"%{exemplar.strip()}%"))
+        filters.append(or_(Exemplar.codigo.ilike(f"%{exemplar.strip()}%"), Emprestimo.codigo_livro.ilike(f"%{exemplar.strip()}%")))
     if titulo:
-        filters.append(Livro.titulo.ilike(f"%{titulo.strip()}%"))
+        filters.append(or_(Livro.titulo.ilike(f"%{titulo.strip()}%"), Emprestimo.nome_livro.ilike(f"%{titulo.strip()}%")))
     if filters:
         query = query.where(and_(*filters))
     query = query.order_by(Emprestimo.data_emprestimo.desc())

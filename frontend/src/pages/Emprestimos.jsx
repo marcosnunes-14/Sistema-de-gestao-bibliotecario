@@ -4,7 +4,16 @@ import { apiRequest, getAccessToken } from '../api/client'
 
 const statusNames = { ativo: 'Ativo', atrasado: 'Atrasado', devolvido: 'Devolvido', cancelado: 'Cancelado' }
 const statusClass = (status) => status === 'atrasado' ? 'overdue' : status
-const emptyLoan = { aluno_id: '', exemplar_id: '', data_prevista_devolucao: '', observacoes: '', copySearch: '' }
+const emptyLoan = {
+  nome_aluno: '',
+  serie_aluno: '',
+  codigo_livro: '',
+  nome_livro: '',
+  autor_livro: '',
+  data_entrega: '',
+  data_prevista_devolucao: '',
+  observacoes: '',
+}
 
 function dateTime(value) {
   return value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'
@@ -112,27 +121,52 @@ export function Emprestimos() {
   const visibleLoans = useMemo(() => loans, [loans])
 
   function openLoanForm() {
-    setLoanForm({ ...emptyLoan, copySearch: '' })
+    setLoanForm({ ...emptyLoan })
     setStudentSearch('')
     setStudentResults(students)
     setLoanOpen(true); setDetails(null); setError('')
   }
   function updateLoanField(event) { setLoanForm((current) => ({ ...current, [event.target.name]: event.target.value })) }
-  function selectStudent(student) {
-    setLoanForm((current) => ({ ...current, aluno_id: String(student.id) }))
-    setStudentSearch(student.nome_completo)
-  }
 
   async function createLoan(event) {
     event.preventDefault()
-    if (!loanForm.aluno_id || !loanForm.exemplar_id || !loanForm.data_prevista_devolucao) { setError('Selecione o aluno, o exemplar e a data prevista de devolução.'); return }
+    const requiredFields = [
+      ['Nome do aluno', loanForm.nome_aluno],
+      ['Série', loanForm.serie_aluno],
+      ['Código do livro', loanForm.codigo_livro],
+      ['Nome do livro', loanForm.nome_livro],
+      ['Autor', loanForm.autor_livro],
+      ['Data de entrega', loanForm.data_entrega],
+      ['Data de devolução', loanForm.data_prevista_devolucao],
+    ]
+    const missing = requiredFields.find(([, value]) => !String(value || '').trim())
+    if (missing) {
+      setError(`${missing[0]} é obrigatório.`)
+      return
+    }
     setSaving(true); setError('')
     try {
-      await apiRequest('/api/emprestimos', { method: 'POST', body: JSON.stringify({ aluno_id: Number(loanForm.aluno_id), exemplar_id: Number(loanForm.exemplar_id), data_prevista_devolucao: `${loanForm.data_prevista_devolucao}T23:59:00`, observacoes: loanForm.observacoes.trim() || null }) })
-      setLoanOpen(false); setFeedback('Empréstimo realizado com sucesso.')
+      await apiRequest('/api/emprestimos', {
+        method: 'POST',
+        body: JSON.stringify({
+          nome_aluno: loanForm.nome_aluno.trim(),
+          serie_aluno: loanForm.serie_aluno.trim(),
+          codigo_livro: loanForm.codigo_livro.trim(),
+          nome_livro: loanForm.nome_livro.trim(),
+          autor_livro: loanForm.autor_livro.trim(),
+          data_entrega: `${loanForm.data_entrega}T00:00:00`,
+          data_prevista_devolucao: `${loanForm.data_prevista_devolucao}T23:59:00`,
+          observacoes: loanForm.observacoes.trim() || null,
+        }),
+      })
+      setLoanOpen(false)
+      setFeedback('Empréstimo realizado com sucesso.')
       await Promise.all([loadLoans(), loadReferences()])
-    } catch (requestError) { setError(apiMessage(requestError, 'Não foi possível registrar o empréstimo.')) }
-    finally { setSaving(false) }
+    } catch (requestError) {
+      setError(apiMessage(requestError, 'Não foi possível registrar o empréstimo.'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function registerReturn() {
@@ -153,7 +187,7 @@ export function Emprestimos() {
       <div className="books-filters loan-filters"><form className="search-form" onSubmit={(event) => { event.preventDefault(); loadLoans() }}><Search size={17} /><select value={queryField} onChange={(event) => setQueryField(event.target.value)} aria-label="Campo da pesquisa"><option value="aluno">Aluno</option><option value="matricula">Matrícula</option><option value="titulo">Livro</option><option value="exemplar">Exemplar</option></select><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para pesquisar" aria-label="Pesquisar empréstimos" /><button type="submit">Pesquisar</button></form><select className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar empréstimos"><option value="ativo">Ativos</option><option value="atrasado">Atrasados</option><option value="devolvido">Devolvidos</option><option value="cancelado">Cancelados</option><option value="todos">Todos</option></select><button className="icon-button" onClick={() => { loadLoans(); loadReferences() }} title="Atualizar empréstimos" aria-label="Atualizar empréstimos"><RefreshCw size={16} /></button></div>
       {feedback && <div className="feedback success" role="status"><Check size={15} /> {feedback}<button onClick={() => setFeedback('')} aria-label="Fechar mensagem"><X size={14} /></button></div>}
       {error && <div className="feedback error" role="alert">{error}</div>}
-      <div className="table-frame">{loading ? <div className="table-state">Carregando empréstimos...</div> : !visibleLoans.length ? <div className="table-state empty-state"><ArrowLeftRight size={24} /><strong>{statusFilter === 'ativo' ? 'Nenhum empréstimo ativo no momento.' : 'Nenhum empréstimo encontrado.'}</strong><span>{query ? 'Ajuste a pesquisa e tente novamente.' : 'Os registros aparecerão nesta área.'}</span></div> : <table><thead><tr><th>Aluno</th><th>Matrícula</th><th>Livro</th><th>Exemplar</th><th>Emprestado em</th><th>Previsto</th><th>Situação</th><th className="actions-column">Ações</th></tr></thead><tbody>{visibleLoans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{students.find((student) => student.id === loan.aluno_id)?.matricula || '—'}</td><td>{loan.livro_titulo}</td><td>{loan.exemplar_codigo}</td><td>{dateOnly(loan.data_emprestimo)}</td><td>{dateOnly(loan.data_prevista_devolucao)}</td><td><span className={`loan-badge ${statusClass(loan.situacao)}`}>{statusNames[loan.situacao] || loan.situacao}</span></td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar" aria-label={`Visualizar empréstimo de ${loan.aluno_nome}`}><Eye size={16} /></button>{(loan.situacao === 'ativo' || loan.situacao === 'atrasado') && <button className="table-action return-action" onClick={() => setReturnLoan(loan)} title="Registrar devolução" aria-label={`Registrar devolução de ${loan.livro_titulo}`}><Check size={16} /></button>}</td></tr>)}</tbody></table>}</div>
+      <div className="table-frame">{loading ? <div className="table-state">Carregando empréstimos...</div> : !visibleLoans.length ? <div className="table-state empty-state"><ArrowLeftRight size={24} /><strong>{statusFilter === 'ativo' ? 'Nenhum empréstimo ativo no momento.' : 'Nenhum empréstimo encontrado.'}</strong><span>{query ? 'Ajuste a pesquisa e tente novamente.' : 'Os registros aparecerão nesta área.'}</span></div> : <table><thead><tr><th>Nome do aluno</th><th>Série</th><th>Código do livro</th><th>Nome do livro</th><th>Autor</th><th>Entrega</th><th>Devolução</th><th>Situação</th><th className="actions-column">Ações</th></tr></thead><tbody>{visibleLoans.map((loan) => <tr key={loan.id}><td className="student-name">{loan.aluno_nome}</td><td>{loan.serie_aluno || loan.aluno?.serie_ano || '—'}</td><td>{loan.codigo_livro || loan.exemplar_codigo || '—'}</td><td>{loan.nome_livro || loan.livro_titulo || '—'}</td><td>{loan.autor_livro || '—'}</td><td>{dateOnly(loan.data_entrega || loan.data_emprestimo)}</td><td>{dateOnly(loan.data_prevista_devolucao)}</td><td><span className={`loan-badge ${statusClass(loan.situacao)}`}>{statusNames[loan.situacao] || loan.situacao}</span></td><td className="row-actions"><button className="table-action" onClick={() => setDetails(loan)} title="Visualizar" aria-label={`Visualizar empréstimo de ${loan.aluno_nome}`}><Eye size={16} /></button>{loan.exemplar_id && (loan.situacao === 'ativo' || loan.situacao === 'atrasado') && <button className="table-action return-action" onClick={() => setReturnLoan(loan)} title="Registrar devolução" aria-label={`Registrar devolução de ${loan.livro_titulo}`}><Check size={16} /></button>}</td></tr>)}</tbody></table>}</div>
       <section className="loan-history">
         <button className="history-toggle" onClick={() => { const nextOpen = !historyOpen; setHistoryOpen(nextOpen); if (nextOpen && !returnedLoans.length) loadHistory() }} aria-expanded={historyOpen}>
           <span><strong>Histórico de devoluções</strong><small>Empréstimos já encerrados, separados dos ativos</small></span><span>{historyOpen ? 'Ocultar' : 'Mostrar'}</span>

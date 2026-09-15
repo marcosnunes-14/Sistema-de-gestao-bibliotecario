@@ -234,6 +234,11 @@ tbody tr:hover { background: #fafcfb; }
 .loan-step select, .loan-step input, .loan-step textarea { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid #cbd6d0; outline: 0; background: #fff; color: #293b33; font: inherit; font-size: 13px; }
 .loan-step textarea { padding-top: 9px; resize: vertical; }
 .loan-step select:focus, .loan-step input:focus, .loan-step textarea:focus { border-color: #709982; box-shadow: 0 0 0 2px rgba(72, 125, 95, .1); }
+.manual-loan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.manual-loan-grid label { display: grid; gap: 6px; color: #53635b; font-size: 12px; font-weight: 500; }
+.manual-loan-grid input, .manual-loan-grid textarea { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid #cbd6d0; outline: 0; background: #fff; color: #293b33; font: inherit; font-size: 13px; }
+.manual-loan-grid textarea { min-height: 88px; padding-top: 9px; resize: vertical; }
+.manual-loan-grid .full-width { grid-column: 1 / -1; }
 .student-search-results { display: grid; gap: 4px; max-height: 180px; overflow-y: auto; border: 1px solid #cbd6d0; background: #fff; }
 .student-search-results button { display: grid; gap: 2px; padding: 9px 10px; border: 0; border-bottom: 1px solid #edf1ef; background: #fff; color: #53635b; text-align: left; }
 .student-search-results button:hover { background: #f2f7f3; }

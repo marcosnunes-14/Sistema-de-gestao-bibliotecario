@@ -25,11 +25,17 @@ class Emprestimo(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    aluno_id: Mapped[int] = mapped_column(ForeignKey("alunos.id"), nullable=False, index=True)
-    exemplar_id: Mapped[int] = mapped_column(ForeignKey("exemplares.id"), nullable=False, index=True)
+    aluno_id: Mapped[int | None] = mapped_column(ForeignKey("alunos.id"), nullable=True, index=True)
+    exemplar_id: Mapped[int | None] = mapped_column(ForeignKey("exemplares.id"), nullable=True, index=True)
+    nome_aluno: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    serie_aluno: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    codigo_livro: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    nome_livro: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    autor_livro: Mapped[str | None] = mapped_column(String(200), nullable=True)
     realizado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True, index=True)
     devolvido_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True, index=True)
     data_emprestimo: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    data_entrega: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     data_prevista_devolucao: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     data_devolucao: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     situacao_base: Mapped[SituacaoEmprestimo] = mapped_column(
@@ -40,8 +46,8 @@ class Emprestimo(Base):
     )
     observacoes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    aluno: Mapped["Aluno"] = relationship()
-    exemplar: Mapped["Exemplar"] = relationship()
+    aluno: Mapped["Aluno | None"] = relationship()
+    exemplar: Mapped["Exemplar | None"] = relationship()
     realizado_por: Mapped["Usuario | None"] = relationship(foreign_keys=[realizado_por_id])
     devolvido_por: Mapped["Usuario | None"] = relationship(foreign_keys=[devolvido_por_id])
     renovacoes: Mapped[list["Renovacao"]] = relationship(
@@ -62,19 +68,54 @@ class Emprestimo(Base):
 
     @property
     def aluno_nome(self) -> str:
-        return self.aluno.nome_completo
+        if self.nome_aluno:
+            return self.nome_aluno
+        if self.aluno:
+            return self.aluno.nome_completo
+        return "Aluno não informado"
+
+    @property
+    def serie_aluno_display(self) -> str | None:
+        if self.serie_aluno:
+            return self.serie_aluno
+        if self.aluno:
+            return self.aluno.serie_ano
+        return None
 
     @property
     def exemplar_codigo(self) -> str:
-        return self.exemplar.codigo
+        if self.codigo_livro:
+            return self.codigo_livro
+        if self.exemplar:
+            return self.exemplar.codigo
+        return "—"
 
     @property
-    def livro_id(self) -> int:
-        return self.exemplar.livro_id
+    def livro_id(self) -> int | None:
+        if self.exemplar:
+            return self.exemplar.livro_id
+        return None
 
     @property
     def livro_titulo(self) -> str:
-        return self.exemplar.livro.titulo
+        if self.nome_livro:
+            return self.nome_livro
+        if self.exemplar and self.exemplar.livro:
+            return self.exemplar.livro.titulo
+        return "Livro não informado"
+
+    @property
+    def autor_livro_display(self) -> str | None:
+        if self.autor_livro:
+            return self.autor_livro
+        if self.exemplar and self.exemplar.livro:
+            autores = getattr(self.exemplar.livro, 'autores', [])
+            return ', '.join(author.nome for author in autores) if autores else None
+        return None
+
+    @property
+    def data_entrega_value(self) -> datetime:
+        return self.data_entrega or self.data_emprestimo
 
     @property
     def realizado_por_nome(self) -> str | None:

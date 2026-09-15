@@ -186,6 +186,26 @@ def test_cancelamento_libera_exemplar_sem_apagar_historico(client):
     assert client.get(f"/api/estoque/exemplares/{exemplar['id']}").json()["situacao"] == "disponivel"
     assert client.get(f"/api/emprestimos/{emprestimo['id']}").status_code == 200
 
+def test_emprestimo_manual_sem_aluno_ou_exemplar(client):
+    payload = {
+        "nome_aluno": "Catarina Nunes",
+        "serie_aluno": "7º ano",
+        "codigo_livro": "MAN-001",
+        "nome_livro": "Livro Manual",
+        "autor_livro": "Autor Manual",
+        "data_entrega": (datetime.now() + timedelta(days=1)).isoformat(),
+        "data_prevista_devolucao": (datetime.now() + timedelta(days=7)).isoformat(),
+    }
+
+    response = client.post("/api/emprestimos", json=payload)
+
+    assert response.status_code == 201
+    assert response.json()["nome_aluno"] == "Catarina Nunes"
+    assert response.json()["serie_aluno"] == "7º ano"
+    assert response.json()["codigo_livro"] == "MAN-001"
+    assert response.json()["nome_livro"] == "Livro Manual"
+    assert response.json()["autor_livro"] == "Autor Manual"
+    assert response.json()["situacao"] == "ativo"
 
 def test_validar_datas_do_emprestimo_e_devolucao(client):
     aluno, _, exemplar = setup_entities(client)
