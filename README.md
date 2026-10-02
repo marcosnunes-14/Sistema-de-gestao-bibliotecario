@@ -113,3 +113,39 @@ Para abrir os processos em terminais separados, execute
 `npm run dev` em `frontend`. Tanto `npm run dev` quanto `npm run preview`
 encaminham `/api` para a API local. Uma hospedagem estática precisa de um backend
 separado e de `VITE_API_URL` definido antes do build; o Vite não publica o servidor Python.
+
+## Diagnóstico do login na hospedagem
+
+A interface na Vercel e a API no Render são deploys separados. Atualizar a
+interface não atualiza automaticamente um backend ligado a outro repositório
+ou branch. Confira no Render o repositório, branch, último commit e DATABASE_URL.
+
+Antes de redeploy/restart, confirme onde os dados estão armazenados. SQLite
+fora de um disco persistente pode desaparecer quando o serviço reinicia.
+Não crie um banco novo nem um novo administrador para substituir um acervo
+que deveria existir; primeiro confira a conexão e os registros existentes.
+
+Com acesso ao terminal do serviço que usa o banco publicado:
+
+```bash
+python -m app.cli diagnose
+```
+
+Esse comando mostra o tipo do banco, as contagens e os logins existentes,
+sem imprimir senhas ou hashes e sem criar tabelas ou usuários. O nome
+salvo no navegador é apenas um atalho local, não confirma que a conta exista
+no banco desse servidor.
+
+Para recuperar a senha de uma conta existente, após conferir o banco correto:
+
+```bash
+python -m app.cli reset-password LOGIN_EXATO
+```
+
+A senha é solicitada de forma oculta no terminal; não coloque a senha em
+comandos, arquivos versionados ou mensagens. A operação preserva o ID do
+usuário e os livros e não reativa contas inativas. Execute no ambiente que
+se conecta ao banco publicado, não num SQLite local diferente. O Render
+Free não oferece Shell/SSH; confira as opções do plano antes desse passo.
+
+Referências: https://render.com/docs/free e https://render.com/docs/disks.
