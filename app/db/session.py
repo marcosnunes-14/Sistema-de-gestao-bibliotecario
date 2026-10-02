@@ -39,8 +39,44 @@ def create_database() -> None:
             exist_ok=True,
         )
     Base.metadata.create_all(bind=engine)
+    _upgrade_catalog_columns()
     _ensure_default_shelves()
     _upgrade_existing_schema()
+
+
+def _upgrade_catalog_columns() -> None:
+    """Add missing catalog/location columns before any ORM query on legacy SQLite."""
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+    expected = {
+        "livros": ["numero_registro", "tipo_obra", "pi", "cdd", "cutter", "assunto", "local", "volumes", "serie", "observacoes"],
+        "prateleiras": ["finalidade", "genero_principal"],
+        "exemplares": ["prateleira_id", "secao_id", "situacao_alterada_em", "situacao_alterada_por_id"],
+    }
+    inspector = inspect(engine)
+    missing = []
+    for table_name, names in expected.items():
+        existing = {column["name"] for column in inspector.get_columns(table_name)}
+        for name in names:
+            if name not in existing:
+                column = Base.metadata.tables[table_name].c[name]
+                missing.append((table_name, name, column.type.compile(dialect=engine.dialect)))
+    if not missing:
+        return
+    # SQLite backup captures existing records before the additive upgrade.
+    import sqlite3
+    from datetime import datetime
+    database = engine.url.database
+    if database and database != ":memory:":
+        source = Path(database)
+        backup_dir = source.parent / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        destination = backup_dir / f"{source.stem}_antes_atualizacao_{datetime.now():%Y%m%d_%H%M%S_%f}.db"
+        with sqlite3.connect(source) as original, sqlite3.connect(destination) as backup:
+            original.backup(backup)
+    with engine.begin() as connection:
+        for table_name, name, column_type in missing:
+            connection.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN "{name}" {column_type}'))
 
 
 def _upgrade_existing_schema() -> None:

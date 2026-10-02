@@ -233,7 +233,9 @@ def test_clonar_livro_cria_novo_registro_e_nao_altera_original(client):
     assert body["isbn"] == original["isbn"]
     assert body["numero_registro"] is None
     assert body["observacoes"] == original["observacoes"]
-    assert body["prateleira_id"] == original["prateleira_id"] or body["prateleira_id"] == shelf["id"]
+    clone_copies = client.get("/api/estoque/exemplares", params={"livro_id": body["id"]}).json()
+    assert len(clone_copies) == 1
+    assert clone_copies[0]["prateleira_id"] == shelf["id"]
     assert client.get(f"/api/livros/{original['id']}").json()["numero_registro"] == "1050"
 
 

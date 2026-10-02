@@ -79,3 +79,37 @@ Estudante do Ensino Médio e desenvolvedor do projeto **Sistema de Gestão Bibli
 ---
 
 > Projeto desenvolvido para fins educacionais e para aplicação em uma biblioteca escolar.
+
+
+## Executar no computador
+
+Na pasta do repositório (onde estão `requirements.txt` e `app`):
+
+```powershell
+python -m pip install -r requirements.txt
+cd frontend
+npm ci
+cd ..
+python scripts/start_local.py
+```
+
+Abra **https://localhost:5173** e mantenha o terminal aberto. No primeiro acesso local,
+o navegador pode pedir confirmação do certificado de desenvolvimento.
+O iniciador prepara a chave de autenticação em `.env` (sem exibi-la), inicia a API
+na porta 8000 e a interface na porta 5173. Se o banco não tiver usuários, ele pede
+os dados do primeiro administrador. Contas existentes mantêm suas senhas.
+Para encerrar, use Ctrl+C.
+
+O banco SQLite é resolvido a partir da pasta do projeto. Confira `DATABASE_URL`
+no `.env`: ela deve apontar para o banco que contém seu acervo. Se já houver um
+`.env`, o iniciador respeita esse caminho. Na primeira configuração, reutiliza
+`data/biblioteca.db` se esse banco existir e não houver `biblioteca.db` na raiz.
+Atualizações de colunas antigas criam um backup antes de alterar o SQLite.
+Não exclua seu banco para atualizar o código. O repositório não inclui os dados
+e usuários armazenados no computador da biblioteca.
+
+Para abrir os processos em terminais separados, execute
+`python -m uvicorn app.main:app --reload` na raiz (com `.env` configurado) e
+`npm run dev` em `frontend`. Tanto `npm run dev` quanto `npm run preview`
+encaminham `/api` para a API local. Uma hospedagem estática precisa de um backend
+separado e de `VITE_API_URL` definido antes do build; o Vite não publica o servidor Python.

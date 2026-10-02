@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BookOpen, Eye, Power, RefreshCw, Search, Wrench, X } from 'lucide-react'
-import { apiRequest, getAccessToken } from '../api/client'
+import { apiListAll, apiRequest, getAccessToken } from '../api/client'
 
 const statusLabels = {
   disponivel: 'Disponível',
@@ -41,7 +41,7 @@ export function Estoque() {
   async function showDetails(row) {
     setError('')
     try {
-      const exemplares = await apiRequest(`/api/estoque/exemplares?livro_id=${row.livro_id}&page=1&page_size=100`)
+      const exemplares = await apiListAll(`/api/estoque/exemplares?livro_id=${row.livro_id}`)
       setDetails({ ...row, exemplares })
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível carregar os exemplares.')
@@ -82,7 +82,7 @@ export function Estoque() {
       if (activePurpose.trim()) params.set('finalidade', activePurpose.trim())
       if (activeGenre.trim()) params.set('genero', activeGenre.trim())
       const [bookPages, categoryList, shelfList, sectionList] = await Promise.all([
-        apiRequest(`/api/estoque/resumo?${params}`),
+        apiListAll(`/api/estoque/resumo?${params}`),
         apiRequest('/api/livros/categorias?page=1&page_size=100'),
         apiRequest('/api/estoque/prateleiras'),
         apiRequest('/api/estoque/secoes'),

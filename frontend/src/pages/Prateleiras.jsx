@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, Eye, Pencil, Plus, Power, RefreshCw, Search, X } from 'lucide-react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
-import { apiRequest, getAccessToken } from '../api/client'
+import { apiListAll, apiRequest, getAccessToken } from '../api/client'
 
 const emptyForm = {
   numero_registro: '', numero_exemplares: '1', tipo_obra: '', pi: '', cdd: '', cutter: '', autores: '', titulo: '', subtitulo: '', assunto: '', local: '', edicao: '', editora: '', ano_publicacao: '', numero_paginas: '', volumes: '', serie: '', isbn: '', idioma: 'Português', observacoes: '', prateleira_id: '', secao_id: '', categoria_id: '', editora_id: '',
@@ -156,8 +156,8 @@ export function Prateleiras() {
   async function loadReferences() {
     const [shelfList, bookList, copyList, authors, categories, publishers, sections] = await Promise.all([
       apiRequest('/api/estoque/prateleiras'),
-      apiRequest('/api/livros?page=1&page_size=100'),
-      apiRequest('/api/estoque/exemplares?page=1&page_size=100'),
+      apiListAll('/api/livros'),
+      apiListAll('/api/estoque/exemplares'),
       apiRequest('/api/livros/autores?page=1&page_size=100'),
       apiRequest('/api/livros/categorias?page=1&page_size=100'),
       apiRequest('/api/livros/editoras?page=1&page_size=100'),

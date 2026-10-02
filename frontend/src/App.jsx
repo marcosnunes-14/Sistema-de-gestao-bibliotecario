@@ -133,6 +133,10 @@ export default function App() {
       navigate('/login', { replace: true })
     }
     window.addEventListener('auth:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
+  }, [navigate])
+
+  useEffect(() => {
     const navigationEntry = performance.getEntriesByType('navigation')[0]
     if (navigationEntry?.type === 'reload') clearSession()
     const token = getAccessToken()
@@ -146,11 +150,11 @@ export default function App() {
         setAuthReady(true)
       }).catch(() => {
         clearSession()
+        setUser(null)
         setAuthReady(true)
       })
     }
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
-  }, [navigate])
+  }, [])
 
   function login(currentUser) {
     setUser(currentUser)
